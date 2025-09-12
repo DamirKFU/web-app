@@ -6,22 +6,20 @@ import (
 	"app/internal/models"
 	"log"
 	"net/http"
-	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 )
 
-func SessionMiddleware(server *core.Server) gin.HandlerFunc {
+func AuthenticationMiddleware(server *core.Server) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		defer c.Next()
-		authHeader := c.GetHeader("Authorization")
-		if authHeader == "" || !strings.HasPrefix(authHeader, "Bearer ") {
+
+		tokenString, err := c.Cookie("auth_token")
+		if err != nil || tokenString == "" {
 			c.Set("user", nil)
 			return
 		}
-
-		tokenString := authHeader[len("Bearer "):]
 
 		token, err := jwt.Parse(tokenString, func(token *jwt.Token) (any, error) {
 			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {

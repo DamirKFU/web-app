@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"log"
 	"time"
 
@@ -14,8 +15,13 @@ type HTTP struct {
 }
 
 type Config struct {
-	HTTP       HTTP `mapstructure:"http"`
-	SECRET_KEY string
+	HTTP             HTTP     `mapstructure:"http"`
+	SECRET_KEY       string   `mapstructure:"secret_key"`
+	SessionCookie    string   `mapstructure:"session_cookie"`
+	AllowOrigins     []string `mapstructure:"allow_origins"`
+	AllowMethods     []string `mapstructure:"allow_methods"`
+	AllowHeaders     []string `mapstructure:"allow_headers"`
+	AllowCredentials bool     `mapstructure:"allow_credentials"`
 }
 
 func Load() Config {
@@ -44,6 +50,7 @@ func Load() Config {
 	if cfg.SECRET_KEY == "" {
 		log.Fatalf("SECRET KEY IS EMTY")
 	}
+	fmt.Println(cfg)
 
 	return cfg
 }

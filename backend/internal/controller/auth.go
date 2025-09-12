@@ -151,7 +151,6 @@ func (ctrl *AuthController) Login(c *gin.Context) {
 
 	c.SetCookie("access_token", accessToken, 15*60, "/", "", false, true)
 	c.SetCookie("refresh_token", refreshToken, 7*24*3600, "/", "", false, true)
-
 	c.JSON(http.StatusOK, gin.H{"status": "logged in"})
 }
 

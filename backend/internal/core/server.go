@@ -31,7 +31,7 @@ type MiddlewareGroup struct {
 }
 
 func NewServer(cfg config.Config) *Server {
-	return &Server{Cfg: cfg, DB: NewDB(), Eng: gin.New(), RoutesMap: make(map[string]Route)}
+	return &Server{Cfg: cfg, DB: NewDB(), Eng: gin.Default(), RoutesMap: make(map[string]Route)}
 }
 
 func (s *Server) RegisterRoutes(rs []Route) {
@@ -61,7 +61,6 @@ func (s *Server) RegisterMiddlewareGroups(mgs []MiddlewareGroup) {
 }
 
 func (s *Server) Start() error {
-	s.Eng.Use(gin.Logger(), gin.Recovery())
 	srv := &http.Server{
 		Addr:         s.Cfg.HTTP.Addr,
 		Handler:      s.Eng,
