@@ -29,7 +29,7 @@ func main() {
 	}
 	mdls := []gin.HandlerFunc{
 		middlewares.CorsMiddleware(s),
-		middlewares.SessionMiddleware(s),
+		middlewares.CSRFMiddleware(s),
 		middlewares.AuthenticationMiddleware(s),
 	}
 	s.RegisterMiddlewares(mdls)

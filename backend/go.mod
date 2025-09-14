@@ -3,13 +3,14 @@ module app
 go 1.24.0
 
 require (
-	github.com/gin-contrib/sessions v1.0.4
 	github.com/gin-contrib/cors v1.7.6
+	github.com/gin-contrib/sessions v1.0.4
 	github.com/gin-gonic/gin v1.10.1
 	github.com/golang-jwt/jwt/v5 v5.3.0
 	github.com/spf13/viper v1.20.1
 	golang.org/x/crypto v0.41.0
 	gorm.io/driver/sqlite v1.6.0
+	github.com/dchest/uniuri v0.0.0-20160212164326-8902c56451e9
 	gorm.io/gorm v1.30.3
 )
 

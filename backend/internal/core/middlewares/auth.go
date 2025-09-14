@@ -49,7 +49,7 @@ func AuthenticationMiddleware(server *core.Server) gin.HandlerFunc {
 
 func AuthRequiredMiddleware(server *core.Server) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		el, ok := c.Keys["user"]
+		el, ok := c.Get("user")
 		if !ok {
 			c.JSON(http.StatusInternalServerError, struct{}{})
 			c.Abort()
