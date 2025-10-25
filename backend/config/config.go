@@ -36,7 +36,6 @@ func Load() Config {
 	var cfg Config
 	_ = v.Unmarshal(&cfg)
 
-	// значения по умолчанию
 	if cfg.HTTP.Addr == "" {
 		cfg.HTTP.Addr = ":8080"
 	}
