@@ -73,7 +73,7 @@ function App() {
 
   const handleCheckAuth = async () => {
     try {
-      const res = await fetch("http://localhost:8080/protected", {
+      const res = await fetch("http://localhost:8080/healf", {
         method: "GET",
         credentials: "include",
       });

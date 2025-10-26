@@ -1,8 +1,7 @@
-package controller
+package controllers
 
 import (
 	"app/internal/core"
-	"app/internal/models"
 
 	"github.com/gin-gonic/gin"
 )
@@ -16,6 +15,6 @@ func NewHealthcheckController(server *core.Server) *HealthcheckController {
 }
 
 func (ctrl *HealthcheckController) Get(ctx *gin.Context) {
-	user := ctx.Keys["user"].(models.User)
+	user := ctx.Keys["user"]
 	ctx.JSON(200, gin.H{"status": "ok", "user": user})
 }

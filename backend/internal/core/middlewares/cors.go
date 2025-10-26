@@ -9,9 +9,9 @@ import (
 
 func CorsMiddleware(server *core.Server) gin.HandlerFunc {
 	return cors.New(cors.Config{
-		AllowOrigins:     server.Cfg.AllowOrigins,
-		AllowMethods:     server.Cfg.AllowMethods,
-		AllowHeaders:     server.Cfg.AllowHeaders,
-		AllowCredentials: server.Cfg.AllowCredentials,
+		AllowOrigins:     server.Cfg.CORS.AllowOrigins,
+		AllowMethods:     server.Cfg.CORS.AllowMethods,
+		AllowHeaders:     server.Cfg.CORS.AllowHeaders,
+		AllowCredentials: server.Cfg.CORS.AllowCredentials,
 	})
 }

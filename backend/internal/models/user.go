@@ -1,14 +1,17 @@
 package models
 
 import (
+	"time"
+
 	"golang.org/x/crypto/bcrypt"
-	"gorm.io/gorm"
 )
 
 type User struct {
-	gorm.Model
-	Username string `gorm:"unique;not null"`
-	Password string `gorm:"not null"`
+	ID        uint `gorm:"primarykey"`
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	Username  string `gorm:"unique;not null;size:42"`
+	Password  string `gorm:"not null"`
 }
 
 func (u *User) SetPassword(password string, secretKey string) error {

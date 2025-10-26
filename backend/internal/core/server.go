@@ -11,10 +11,11 @@ import (
 )
 
 type Server struct {
-	Cfg       config.Config
-	DB        *gorm.DB
-	Eng       *gin.Engine
-	RoutesMap map[string]Route
+	Cfg         config.Config
+	DB          *gorm.DB
+	Eng         *gin.Engine
+	RoutesMap   map[string]Route
+	RedisServer *RedisServer
 }
 
 type Route struct {
@@ -31,7 +32,13 @@ type MiddlewareGroup struct {
 }
 
 func NewServer(cfg config.Config) *Server {
-	return &Server{Cfg: cfg, DB: NewDB(), Eng: gin.Default(), RoutesMap: make(map[string]Route)}
+	return &Server{
+		Cfg:         cfg,
+		DB:          NewDB(cfg),
+		Eng:         gin.Default(),
+		RoutesMap:   make(map[string]Route),
+		RedisServer: NewRedisServer(cfg),
+	}
 }
 
 func (s *Server) RegisterRoutes(rs []Route) {
