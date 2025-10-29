@@ -1,14 +1,14 @@
-package utils
+package auth
 
 import (
-	"app/internal/controllers/types"
+	"app/internal/core"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
 )
 
 func GenerateTokens(userID uint, secretKey string, accessExpiresIn time.Duration, refreshExpiresIn time.Duration) (string, string, error) {
-	accessClaims := &types.Claims{
+	accessClaims := &core.Claims{
 		UserID: userID,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(accessExpiresIn)),
@@ -19,7 +19,7 @@ func GenerateTokens(userID uint, secretKey string, accessExpiresIn time.Duration
 		return "", "", err
 	}
 
-	refreshClaims := &types.Claims{
+	refreshClaims := &core.Claims{
 		UserID: userID,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(refreshExpiresIn)),

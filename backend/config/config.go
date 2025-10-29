@@ -42,8 +42,7 @@ type REDIS struct {
 }
 
 type CSRF struct {
-	Cookie       string   `mapstructure:"csrf_cookie"`
-	ExcludePaths []string `mapstructure:"exclude_paths"`
+	Cookie string `mapstructure:"csrf_cookie"`
 }
 
 type Config struct {

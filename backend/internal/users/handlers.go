@@ -1,8 +1,6 @@
-package controllers
+package users
 
-import (
-	"app/internal/core"
-)
+import "app/internal/core"
 
 type UsersController struct {
 	server *core.Server

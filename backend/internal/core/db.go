@@ -2,7 +2,6 @@ package core
 
 import (
 	"app/config"
-	"app/internal/models"
 	"fmt"
 	"log"
 
@@ -22,10 +21,6 @@ func NewDB(cfg config.Config) *gorm.DB {
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
 		log.Fatalf("failed to connect database: %v", err)
-	}
-
-	if err := db.AutoMigrate(&models.User{}); err != nil {
-		log.Fatalf("failed to migrate database: %v", err)
 	}
 
 	return db

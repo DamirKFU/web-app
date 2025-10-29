@@ -16,3 +16,4 @@
 28957:C 26 Oct 2025 18:49:55.177 * DB saved on disk
 28957:C 26 Oct 2025 18:49:55.177 * Fork CoW for RDB: current 0 MB, peak 0 MB, average 0 MB
 20854:M 26 Oct 2025 18:49:55.267 * Background saving terminated with success
+20854:M 26 Oct 2025 18:56:09.569 # Possible SECURITY ATTACK detected. It looks like somebody is sending POST or Host: commands to Redis. This is likely due to an attacker attempting to use Cross Protocol Scripting to compromise your Redis instance. Connection from 127.0.0.1:43716 aborted.

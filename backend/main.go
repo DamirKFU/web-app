@@ -4,34 +4,52 @@ import (
 	"log"
 
 	"app/config"
-	"app/internal/controllers"
+	"app/internal/auth"
+	"app/internal/catalog"
 	"app/internal/core"
-	"app/internal/core/middlewares"
+	"app/internal/users"
 
 	"github.com/gin-gonic/gin"
 )
 
-func main() {
-	cfg := config.Load()
+func CreateApp(cfg config.Config) *core.Server {
 
 	s := core.NewServer(cfg)
 
-	var hc = controllers.NewHealthcheckController(s)
-	var au = controllers.NewAuthController(s)
+	catalog.RegisterValidators(s)
+	users.RegisterValidators(s)
 
-	routes := []core.Route{
-		{Method: "GET", Path: "/healf", HandlerFunc: hc.Get, NameSpace: "1"},
-		{Method: "POST", Path: "/login", HandlerFunc: au.Login, NameSpace: "3"},
-		{Method: "POST", Path: "/register", HandlerFunc: au.Register, NameSpace: "4"},
-		{Method: "POST", Path: "/logout", HandlerFunc: au.Logout, NameSpace: "5"},
+	models := []interface{}{
+		&catalog.Color{},
+		&users.User{},
 	}
-	mdls := []gin.HandlerFunc{
-		middlewares.CorsMiddleware(s),
-		middlewares.CSRFMiddleware(s),
-		middlewares.AuthenticationMiddleware(s),
+	base_mdls := []gin.HandlerFunc{
+		core.CorsMiddleware(s),
+		core.CSRFMiddleware(s),
+		auth.AuthenticationMiddleware(s),
 	}
-	s.RegisterMiddlewares(mdls)
-	s.RegisterRoutes(routes)
+
+	base_group := s.Eng.Group("")
+	auth.RegisterGroupRoutes(
+		base_group,
+		append(
+			[]gin.HandlerFunc{core.CsrfExemptMiddleware(s)},
+			base_mdls...,
+		),
+		s,
+	)
+	core.RegisterGroupRoutes(base_group, base_mdls, s)
+
+	if err := s.DB.AutoMigrate(models...); err != nil {
+		log.Fatalf("failed to migrate database: %v", err)
+	}
+	return s
+}
+
+func main() {
+	cfg := config.Load()
+	s := CreateApp(cfg)
+	log.Println(s.RoutesMap)
 	if err := s.Start(); err != nil {
 		log.Fatal(err)
 	}

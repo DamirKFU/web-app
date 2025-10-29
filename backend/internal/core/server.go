@@ -1,35 +1,14 @@
 package core
 
 import (
-	"log"
 	"net/http"
 
 	"app/config"
 
 	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
+	"github.com/gin-gonic/gin/binding"
+	"github.com/go-playground/validator/v10"
 )
-
-type Server struct {
-	Cfg         config.Config
-	DB          *gorm.DB
-	Eng         *gin.Engine
-	RoutesMap   map[string]Route
-	RedisServer *RedisServer
-}
-
-type Route struct {
-	Method      string
-	Path        string
-	HandlerFunc gin.HandlerFunc
-	NameSpace   string
-}
-
-type MiddlewareGroup struct {
-	Prefix     string
-	Middleware []gin.HandlerFunc
-	Routes     []Route
-}
 
 func NewServer(cfg config.Config) *Server {
 	return &Server{
@@ -41,28 +20,20 @@ func NewServer(cfg config.Config) *Server {
 	}
 }
 
-func (s *Server) RegisterRoutes(rs []Route) {
-	for _, route := range rs {
-		s.Eng.Handle(route.Method, route.Path, route.HandlerFunc)
-		if _, exists := s.RoutesMap[route.NameSpace]; exists {
-			log.Printf("[WARN] Route namespace '%s' is repeated. Previous handler will be overwritten by the new one.\n", route.NameSpace)
+func (s *Server) RegisterValidators(
+	customValidators map[string]validator.Func,
+	aliases map[string]string,
+) {
+	if v, ok := binding.Validator.Engine().(*validator.Validate); ok {
+
+		for name, fn := range customValidators {
+			if err := v.RegisterValidation(name, fn); err != nil {
+				panic("failed to register validator: " + name)
+			}
 		}
-		s.RoutesMap[route.NameSpace] = route
-	}
-}
 
-func (s *Server) RegisterMiddlewares(middlewares []gin.HandlerFunc) {
-	for _, middleware := range middlewares {
-		s.Eng.Use(middleware)
-	}
-}
-
-func (s *Server) RegisterMiddlewareGroups(mgs []MiddlewareGroup) {
-	for _, mg := range mgs {
-		group := s.Eng.Group(mg.Prefix)
-		group.Use(mg.Middleware...)
-		for _, route := range mg.Routes {
-			group.Handle(route.Method, route.Path, route.HandlerFunc)
+		for alias, rule := range aliases {
+			v.RegisterAlias(alias, rule)
 		}
 	}
 }

@@ -1,9 +1,8 @@
-package middlewares
+package auth
 
 import (
-	"app/internal/controllers/types"
 	"app/internal/core"
-	"app/internal/models"
+	"app/internal/users"
 	"log"
 	"net/http"
 
@@ -21,7 +20,7 @@ func AuthenticationMiddleware(server *core.Server) gin.HandlerFunc {
 			return
 		}
 
-		claims := &types.Claims{}
+		claims := &core.Claims{}
 		token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (any, error) {
 			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 				return nil, jwt.ErrSignatureInvalid
@@ -34,7 +33,7 @@ func AuthenticationMiddleware(server *core.Server) gin.HandlerFunc {
 			return
 		}
 
-		var user models.User
+		var user users.User
 		if err := server.DB.First(&user, claims.UserID).Error; err != nil {
 			c.Set("user", nil)
 			return

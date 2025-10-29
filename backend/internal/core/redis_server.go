@@ -8,10 +8,6 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-type RedisServer struct {
-	RDB0 *redis.Client
-}
-
 func NewRedisServer(cfg config.Config) *RedisServer {
 	rdb0 := redis.NewClient(&redis.Options{
 		Addr:     cfg.REDIS.Addr,
