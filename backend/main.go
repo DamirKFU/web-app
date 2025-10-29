@@ -9,7 +9,11 @@ import (
 	"app/internal/core"
 	"app/internal/users"
 
+	_ "app/docs" // <- обязательно, чтобы swag зарегистрировал JSON
+
 	"github.com/gin-gonic/gin"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
 func CreateApp(cfg config.Config) *core.Server {
@@ -29,7 +33,7 @@ func CreateApp(cfg config.Config) *core.Server {
 		auth.AuthenticationMiddleware(s),
 	}
 
-	base_group := s.Eng.Group("")
+	base_group := s.Eng.Group("api/v1/")
 	auth.RegisterGroupRoutes(
 		base_group,
 		append(
@@ -39,6 +43,7 @@ func CreateApp(cfg config.Config) *core.Server {
 		s,
 	)
 	core.RegisterGroupRoutes(base_group, base_mdls, s)
+	s.Eng.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	if err := s.DB.AutoMigrate(models...); err != nil {
 		log.Fatalf("failed to migrate database: %v", err)

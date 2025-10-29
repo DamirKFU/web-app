@@ -34,9 +34,15 @@ func ParseValidationError(err error) string {
 }
 
 func HandleError(c *gin.Context, err error) bool {
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	if err == nil {
+		return false
+	}
+
+	if se, ok := err.(*ServiceError); ok {
+		c.JSON(se.Code, gin.H{"error": se.Message})
 		return true
 	}
-	return false
+
+	c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	return true
 }
