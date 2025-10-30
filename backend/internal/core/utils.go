@@ -24,25 +24,41 @@ func GenerateCSRFToken(secret string) (string, error) {
 	return hash, nil
 }
 
-func ParseValidationError(err error) string {
-	if errs, ok := err.(validator.ValidationErrors); ok {
-		for _, e := range errs {
-			return e.Field() + ": invalid"
-		}
+func ParseValidationError(err error) map[string]string {
+	fieldErrors := make(map[string]string)
+	for _, fe := range err.(validator.ValidationErrors) {
+		fieldErrors[fe.Field()] = fe.Error()
 	}
-	return err.Error()
+	return fieldErrors
 }
 
-func HandleError(c *gin.Context, err error) bool {
+func HandleServiceError(c *gin.Context, err error) bool {
 	if err == nil {
 		return false
 	}
-
 	if se, ok := err.(*ServiceError); ok {
-		c.JSON(se.Code, gin.H{"error": se.Message})
-		return true
+		Fail(c, se.Code, se.Message, se.Fields)
+	} else {
+		Fail(c, http.StatusInternalServerError, "internal server error", nil)
 	}
-
-	c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 	return true
+}
+
+func JSONResponse(c *gin.Context, code int, success bool, data any, apiErr *APIError) {
+	c.JSON(code, APIResponse{
+		Success: success,
+		Data:    data,
+		Error:   apiErr,
+	})
+}
+
+func Fail(c *gin.Context, code int, message string, fields map[string]string) {
+	JSONResponse(c, code, false, nil, &APIError{
+		Message: message,
+		Fields:  fields,
+	})
+}
+
+func Success(c *gin.Context, data any) {
+	JSONResponse(c, http.StatusOK, true, data, nil)
 }

@@ -20,29 +20,51 @@ func NewAuthService(server *core.Server) *AuthService {
 func (service *AuthService) Register(username, password string) error {
 	var existing users.User
 	if err := service.server.DB.Where("username = ?", username).First(&existing).Error; err == nil {
-		return &core.ServiceError{Code: http.StatusBadRequest, Message: "username already exists"}
+		return &core.ServiceError{
+			Code:    http.StatusBadRequest,
+			Message: "validation failed",
+			Fields:  map[string]string{"username": "already exists"},
+		}
 	}
 
 	user := users.User{Username: username}
 	if err := user.SetPassword(password, service.server.Cfg.SecretKey); err != nil {
-		return &core.ServiceError{Code: http.StatusInternalServerError, Message: err.Error()}
+		return &core.ServiceError{
+			Code:    http.StatusInternalServerError,
+			Message: err.Error(),
+		}
 	}
 
 	if err := service.server.DB.Create(&user).Error; err != nil {
-		return &core.ServiceError{Code: http.StatusInternalServerError, Message: err.Error()}
+		return &core.ServiceError{
+			Code:    http.StatusInternalServerError,
+			Message: err.Error(),
+		}
 	}
 
 	return nil
 }
 
-func (service *AuthService) Login(c *gin.Context, username, password string) (string, string, error) {
+func (service *AuthService) Login(c *gin.Context, username, password, oldrefreshToken string) (string, string, error) {
 	var user users.User
+
+	if oldrefreshToken != "" {
+		_ = service.server.RedisServer.RDB0.Del(c.Request.Context(), oldrefreshToken).Err()
+	}
+
 	if err := service.server.DB.Where("username = ?", username).First(&user).Error; err != nil {
-		return "", "", &core.ServiceError{Code: http.StatusUnauthorized, Message: "invalid credentials"}
+		return "", "", &core.ServiceError{
+			Code:    http.StatusUnauthorized,
+			Message: "invalid credentials",
+		}
 	}
 
 	if !user.CheckPassword(password, service.server.Cfg.SecretKey) {
-		return "", "", &core.ServiceError{Code: http.StatusUnauthorized, Message: "invalid credentials"}
+		return "", "", &core.ServiceError{
+			Code:    http.StatusUnauthorized,
+			Message: "invalid credentials",
+			Fields:  map[string]string{"password": "not coorect"},
+		}
 	}
 
 	accessToken, refreshToken, err := GenerateTokens(
@@ -52,7 +74,10 @@ func (service *AuthService) Login(c *gin.Context, username, password string) (st
 	)
 
 	if err != nil {
-		return "", "", &core.ServiceError{Code: http.StatusInternalServerError, Message: "could not generate tokens"}
+		return "", "", &core.ServiceError{
+			Code:    http.StatusInternalServerError,
+			Message: "could not generate tokens",
+		}
 	}
 
 	err = service.server.RedisServer.RDB0.Set(
@@ -63,7 +88,10 @@ func (service *AuthService) Login(c *gin.Context, username, password string) (st
 	).Err()
 
 	if err != nil {
-		return "", "", &core.ServiceError{Code: http.StatusInternalServerError, Message: "could not save refresh token"}
+		return "", "", &core.ServiceError{
+			Code:    http.StatusInternalServerError,
+			Message: "could not save refresh token",
+		}
 	}
 
 	return accessToken, refreshToken, nil
@@ -72,7 +100,10 @@ func (service *AuthService) Login(c *gin.Context, username, password string) (st
 func (service *AuthService) RefreshTokens(c *gin.Context, oldRefreshToken string) (string, string, error) {
 	_, err := service.server.RedisServer.RDB0.Get(c, oldRefreshToken).Result()
 	if err != nil {
-		return "", "", &core.ServiceError{Code: http.StatusUnauthorized, Message: "refresh token not found or expired"}
+		return "", "", &core.ServiceError{
+			Code:    http.StatusUnauthorized,
+			Message: "refresh token not found or expired",
+		}
 	}
 
 	token, err := jwt.ParseWithClaims(oldRefreshToken, &core.Claims{}, func(token *jwt.Token) (any, error) {
@@ -82,12 +113,18 @@ func (service *AuthService) RefreshTokens(c *gin.Context, oldRefreshToken string
 		return []byte(service.server.Cfg.SecretKey), nil
 	})
 	if err != nil || !token.Valid {
-		return "", "", &core.ServiceError{Code: http.StatusUnauthorized, Message: "invalid refresh token"}
+		return "", "", &core.ServiceError{
+			Code:    http.StatusUnauthorized,
+			Message: "invalid refresh token",
+		}
 	}
 
 	claims, ok := token.Claims.(*core.Claims)
 	if !ok {
-		return "", "", &core.ServiceError{Code: http.StatusUnauthorized, Message: "invalid claims"}
+		return "", "", &core.ServiceError{
+			Code:    http.StatusUnauthorized,
+			Message: "invalid claims",
+		}
 	}
 
 	newAccess, newRefresh, err := GenerateTokens(
@@ -98,7 +135,10 @@ func (service *AuthService) RefreshTokens(c *gin.Context, oldRefreshToken string
 	)
 
 	if err != nil {
-		return "", "", &core.ServiceError{Code: http.StatusInternalServerError, Message: "could not generate tokens"}
+		return "", "", &core.ServiceError{
+			Code:    http.StatusInternalServerError,
+			Message: "could not generate tokens",
+		}
 	}
 
 	service.server.RedisServer.RDB0.Del(c.Request.Context(), oldRefreshToken)
@@ -111,8 +151,17 @@ func (service *AuthService) RefreshTokens(c *gin.Context, oldRefreshToken string
 	).Err()
 
 	if err != nil {
-		return "", "", &core.ServiceError{Code: http.StatusInternalServerError, Message: "could not save new refresh token"}
+		return "", "", &core.ServiceError{
+			Code:    http.StatusInternalServerError,
+			Message: "could not save new refresh token",
+		}
 	}
 
 	return newAccess, newRefresh, nil
+}
+
+func (service *AuthService) DeleteRefreshToken(c *gin.Context, token string) {
+	if token != "" {
+		service.server.RedisServer.RDB0.Del(c.Request.Context(), token).Err()
+	}
 }

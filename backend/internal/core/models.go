@@ -10,5 +10,9 @@ type AbstractModel struct {
 
 type AbstractNameModel struct {
 	AbstractModel
-	Name string `gorm:"unique;not null;size:128"`
+	Name string `gorm:"type:varchar(150);unique;not null" json:"name"`
+}
+
+func (a AbstractNameModel) String() string {
+	return a.Name
 }

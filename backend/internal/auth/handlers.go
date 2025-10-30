@@ -2,7 +2,6 @@ package auth
 
 import (
 	"app/internal/core"
-	"net/http"
 
 	"github.com/gin-gonic/gin"
 )
@@ -22,49 +21,45 @@ func NewAuthController(server *core.Server) *AuthController {
 func (ctrl *AuthController) Register(c *gin.Context) {
 	var body RegisterRequest
 	if err := c.ShouldBindJSON(&body); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": core.ParseValidationError(err)})
+		core.Fail(c, 400, "validation failed", core.ParseValidationError(err))
 		return
 	}
 
-	err := ctrl.service.Register(body.Username, body.Password)
-	if core.HandleError(c, err) {
+	if core.HandleServiceError(c, ctrl.service.Register(body.Username, body.Password)) {
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"status": "user registered"})
+	core.Success(c, gin.H{"message": "user registered"})
 }
 
 func (ctrl *AuthController) Login(c *gin.Context) {
 	var body LoginRequest
 	if err := c.ShouldBindJSON(&body); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": core.ParseValidationError(err)})
+		core.Fail(c, 400, "validation failed", core.ParseValidationError(err))
 		return
 	}
 
-	refreshToken, err := c.Cookie(ctrl.server.Cfg.JWT.RefreshCookie)
-	if err != nil && refreshToken != "" {
-		ctrl.server.RedisServer.RDB0.Del(c.Request.Context(), refreshToken).Err()
-	}
+	oldrefreshToken, _ := c.Cookie(ctrl.server.Cfg.JWT.RefreshCookie)
 
-	accessToken, refreshToken, err := ctrl.service.Login(c, body.Username, body.Password)
-	if core.HandleError(c, err) {
+	accessToken, refreshToken, err := ctrl.service.Login(c, body.Username, body.Password, oldrefreshToken)
+	if core.HandleServiceError(c, err) {
 		return
 	}
 
 	c.SetCookie(ctrl.server.Cfg.JWT.AccessCookie, accessToken, int(ctrl.server.Cfg.JWT.AccessExpiresIn), "/", "", false, true)
 	c.SetCookie(ctrl.server.Cfg.JWT.RefreshCookie, refreshToken, int(ctrl.server.Cfg.JWT.RefreshExpiresIn), "/", "", false, true)
-	c.JSON(http.StatusOK, gin.H{"status": "logged in"})
+	core.Success(c, gin.H{"message": "logged in"})
 }
 
 func (ctrl *AuthController) RefreshToken(c *gin.Context) {
 	refreshToken, err := c.Cookie(ctrl.server.Cfg.JWT.RefreshCookie)
-	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "refresh token not found"})
+	if err != nil || refreshToken == "" {
+		core.Fail(c, 401, "refresh token not found", nil)
 		return
 	}
 
 	newAccess, newRefresh, err := ctrl.service.RefreshTokens(c, refreshToken)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	if core.HandleServiceError(c, err) {
+		return
 	}
 
 	c.SetCookie(
@@ -87,16 +82,15 @@ func (ctrl *AuthController) RefreshToken(c *gin.Context) {
 		true,
 	)
 
-	c.JSON(http.StatusOK, gin.H{"status": "access token refreshed"})
+	core.Success(c, gin.H{"message": "access token refreshed"})
 }
 
 func (ctrl *AuthController) Logout(c *gin.Context) {
-	refreshToken, err := c.Cookie(ctrl.server.Cfg.JWT.RefreshCookie)
-	if err != nil && refreshToken != "" {
-		ctrl.server.RedisServer.RDB0.Del(c.Request.Context(), refreshToken).Err()
+	if oldRefreshToken, err := c.Cookie(ctrl.server.Cfg.JWT.RefreshCookie); err == nil {
+		ctrl.service.DeleteRefreshToken(c, oldRefreshToken)
 	}
 	c.SetCookie(ctrl.server.Cfg.JWT.AccessCookie, "", -1, "/", "", false, true)
 	c.SetCookie(ctrl.server.Cfg.JWT.RefreshCookie, "", -1, "/", "", false, true)
 
-	c.JSON(http.StatusOK, gin.H{"status": "logged out"})
+	core.Success(c, gin.H{"message": "logged out"})
 }

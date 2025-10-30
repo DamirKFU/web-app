@@ -8,8 +8,9 @@ import (
 
 type User struct {
 	core.AbstractModel
-	Username string `gorm:"unique;not null;size:42"`
-	Password string `gorm:"not null"`
+	Username    string `gorm:"type:varchar(42);unique;not null" json:"username"`
+	Password    string `gorm:"type:varchar(128);unique;not null" json:"password"`
+	IsSuperUser bool   `gorm:"default:false;not null" json:"is_super_user"`
 }
 
 func (u *User) SetPassword(password string, secretKey string) error {

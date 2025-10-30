@@ -23,8 +23,10 @@ func CreateApp(cfg config.Config) *core.Server {
 	catalog.RegisterValidators(s)
 	users.RegisterValidators(s)
 
-	models := []interface{}{
+	models := []any{
 		&catalog.Color{},
+		&catalog.Category{},
+		&catalog.TShirt{},
 		&users.User{},
 	}
 	base_mdls := []gin.HandlerFunc{
