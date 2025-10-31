@@ -2,6 +2,7 @@ package auth
 
 import (
 	"app/internal/core"
+	"net/http"
 
 	"github.com/gin-gonic/gin"
 )
@@ -21,7 +22,7 @@ func NewAuthController(server *core.Server) *AuthController {
 func (ctrl *AuthController) Register(c *gin.Context) {
 	var body RegisterRequest
 	if err := c.ShouldBindJSON(&body); err != nil {
-		core.Fail(c, 400, "validation failed", core.ParseValidationError(err))
+		core.Fail(c, http.StatusInternalServerError, "validation failed", core.ParseValidationError(err))
 		return
 	}
 
@@ -34,7 +35,7 @@ func (ctrl *AuthController) Register(c *gin.Context) {
 func (ctrl *AuthController) Login(c *gin.Context) {
 	var body LoginRequest
 	if err := c.ShouldBindJSON(&body); err != nil {
-		core.Fail(c, 400, "validation failed", core.ParseValidationError(err))
+		core.Fail(c, http.StatusInternalServerError, "validation failed", core.ParseValidationError(err))
 		return
 	}
 
@@ -53,7 +54,7 @@ func (ctrl *AuthController) Login(c *gin.Context) {
 func (ctrl *AuthController) RefreshToken(c *gin.Context) {
 	refreshToken, err := c.Cookie(ctrl.server.Cfg.JWT.RefreshCookie)
 	if err != nil || refreshToken == "" {
-		core.Fail(c, 401, "refresh token not found", nil)
+		core.Fail(c, http.StatusUnauthorized, "refresh token not found", nil)
 		return
 	}
 

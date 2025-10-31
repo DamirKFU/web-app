@@ -1,6 +1,7 @@
 package core
 
 import (
+	"log"
 	"net/http"
 
 	"app/config"
@@ -35,6 +36,19 @@ func (s *Server) RegisterValidators(
 		for alias, rule := range aliases {
 			v.RegisterAlias(alias, rule)
 		}
+	}
+}
+
+func (s *Server) RegisterRoutes(group *gin.RouterGroup, routes []Route, mdls []gin.HandlerFunc) {
+	for _, route := range routes {
+		allHandlers := append(route.DecoratorHandlerFuncs, mdls...)
+		allHandlers = append(allHandlers, route.HandlerFuncs...)
+
+		group.Handle(route.Method, route.Path, allHandlers...)
+		if _, exists := s.RoutesMap[route.NameSpace]; exists {
+			log.Printf("[WARN] Route namespace '%s' is repeated. Previous handler will be overwritten by the new one.\n", route.NameSpace)
+		}
+		s.RoutesMap[route.NameSpace] = route
 	}
 }
 

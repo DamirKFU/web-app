@@ -1,12 +1,21 @@
-version: "3.9"
+version: '3.9'
 
 services:
-  app:
-    build:
-      context: ./backend
-    container_name: web-app
+  db:
+    image: postgres:15
+    container_name: my_postgres
+    environment:
+      POSTGRES_USER: adminer
+      POSTGRES_PASSWORD: adminerpass
+      POSTGRES_DB: testdb
     ports:
-      - "8080:8080"
-    volumes:
-      - ./backend/data:/app/data
-    command: ["./main"]
+      - "5432:5432"
+
+  adminer:
+    image: adminer
+    container_name: adminer
+    restart: always
+    ports:
+      - "8081:8080"
+    depends_on:
+      - db

@@ -9,6 +9,46 @@ definitions:
     - password
     - username
     type: object
+  auth.RegisterRequest:
+    properties:
+      password:
+        type: string
+      username:
+        type: string
+    type: object
+  catalog.CategoryResponse:
+    properties:
+      id:
+        type: integer
+      name:
+        type: string
+    type: object
+  catalog.ColorResponse:
+    properties:
+      color:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+    type: object
+  core.APIError:
+    properties:
+      fields:
+        additionalProperties:
+          type: string
+        type: object
+      message:
+        type: string
+    type: object
+  core.APIResponse:
+    properties:
+      data: {}
+      error:
+        $ref: '#/definitions/core.APIError'
+      success:
+        type: boolean
+    type: object
 info:
   contact: {}
 paths:
@@ -27,18 +67,128 @@ paths:
       - application/json
       responses:
         "200":
-          description: OK
+          description: Successfully logged in
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            allOf:
+            - $ref: '#/definitions/core.APIResponse'
+            - properties:
+                data:
+                  additionalProperties:
+                    type: string
+                  type: object
+              type: object
         "400":
-          description: Bad Request
+          description: Bad request
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            allOf:
+            - $ref: '#/definitions/core.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/core.APIError'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            allOf:
+            - $ref: '#/definitions/core.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/core.APIError'
+              type: object
       summary: Login user
       tags:
       - auth
+  /api/v1/auth/register:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Register credentials
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/auth.RegisterRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Successfully logged in
+          schema:
+            allOf:
+            - $ref: '#/definitions/core.APIResponse'
+            - properties:
+                data:
+                  additionalProperties:
+                    type: string
+                  type: object
+              type: object
+        "400":
+          description: Bad request
+          schema:
+            allOf:
+            - $ref: '#/definitions/core.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/core.APIError'
+              type: object
+      summary: Register user
+      tags:
+      - auth
+  /api/v1/catalog/categories:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Successfully get categories
+          schema:
+            allOf:
+            - $ref: '#/definitions/core.APIResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/catalog.CategoryResponse'
+                  type: array
+              type: object
+        "400":
+          description: Bad request
+          schema:
+            allOf:
+            - $ref: '#/definitions/core.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/core.APIError'
+              type: object
+      summary: Ger categories
+      tags:
+      - catalog
+  /api/v1/catalog/colors:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Successfully get colors
+          schema:
+            allOf:
+            - $ref: '#/definitions/core.APIResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/catalog.ColorResponse'
+                  type: array
+              type: object
+        "400":
+          description: Bad request
+          schema:
+            allOf:
+            - $ref: '#/definitions/core.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/core.APIError'
+              type: object
+      summary: Ger colors
+      tags:
+      - catalog
 swagger: "2.0"

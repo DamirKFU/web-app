@@ -63,7 +63,6 @@ func (service *AuthService) Login(c *gin.Context, username, password, oldrefresh
 		return "", "", &core.ServiceError{
 			Code:    http.StatusUnauthorized,
 			Message: "invalid credentials",
-			Fields:  map[string]string{"password": "not coorect"},
 		}
 	}
 

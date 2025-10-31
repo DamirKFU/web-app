@@ -2,7 +2,6 @@ package auth
 
 import (
 	"app/internal/core"
-	"log"
 
 	"github.com/gin-gonic/gin"
 )
@@ -47,15 +46,6 @@ func RegisterGroupRoutes(g *gin.RouterGroup, mdls []gin.HandlerFunc, s *core.Ser
 			NameSpace:             "6",
 		},
 	}
-	for _, route := range routes {
-		allHandlers := append(route.DecoratorHandlerFuncs, mdls...)
-		allHandlers = append(allHandlers, route.HandlerFuncs...)
-
-		group.Handle(route.Method, route.Path, allHandlers...)
-		if _, exists := s.RoutesMap[route.NameSpace]; exists {
-			log.Printf("[WARN] Route namespace '%s' is repeated. Previous handler will be overwritten by the new one.\n", route.NameSpace)
-		}
-		s.RoutesMap[route.NameSpace] = route
-	}
+	s.RegisterRoutes(group, routes, mdls)
 	return group
 }

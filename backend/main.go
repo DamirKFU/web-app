@@ -44,6 +44,11 @@ func CreateApp(cfg config.Config) *core.Server {
 		),
 		s,
 	)
+	catalog.RegisterGroupRoutes(
+		base_group,
+		base_mdls,
+		s,
+	)
 	core.RegisterGroupRoutes(base_group, base_mdls, s)
 	s.Eng.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
