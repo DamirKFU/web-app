@@ -23,38 +23,21 @@ func CreateApp(cfg config.Config) *core.Server {
 	catalog.RegisterValidators(s)
 	users.RegisterValidators(s)
 
-	models := []any{
-		&catalog.Color{},
-		&catalog.Category{},
-		&catalog.TShirt{},
-		&users.User{},
-	}
 	base_mdls := []gin.HandlerFunc{
 		core.CorsMiddleware(s),
-		core.CSRFMiddleware(s),
 		auth.AuthenticationMiddleware(s),
+		core.CSRFMiddleware(s),
 	}
+
+	s.RegisterMiddlewares(base_mdls)
 
 	base_group := s.Eng.Group("api/v1/")
-	auth.RegisterGroupRoutes(
-		base_group,
-		append(
-			[]gin.HandlerFunc{core.CsrfExemptMiddleware(s)},
-			base_mdls...,
-		),
-		s,
-	)
-	catalog.RegisterGroupRoutes(
-		base_group,
-		base_mdls,
-		s,
-	)
-	core.RegisterGroupRoutes(base_group, base_mdls, s)
-	s.Eng.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
-	if err := s.DB.AutoMigrate(models...); err != nil {
-		log.Fatalf("failed to migrate database: %v", err)
-	}
+	auth.RegisterApp(base_group, s)
+	core.RegisterApp(base_group, s)
+	catalog.RegisterApp(base_group, s)
+
+	s.Eng.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 	return s
 }
 

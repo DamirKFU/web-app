@@ -1,8 +1,8 @@
 package core
 
 import (
+	"log"
 	"net/http"
-	"slices"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -15,12 +15,6 @@ func CorsMiddleware(server *Server) gin.HandlerFunc {
 		AllowHeaders:     server.Cfg.CORS.AllowHeaders,
 		AllowCredentials: server.Cfg.CORS.AllowCredentials,
 	})
-}
-
-func inArray(arr []string, value string) bool {
-	inarr := slices.Contains(arr, value)
-
-	return inarr
 }
 
 func CSRFMiddleware(server *Server) gin.HandlerFunc {
@@ -44,16 +38,21 @@ func CSRFMiddleware(server *Server) gin.HandlerFunc {
 	CsrfCookie := server.Cfg.CSRF.Cookie
 
 	return func(c *gin.Context) {
-		value, ok := c.Get("csrf_exempt")
+		user, ok := c.Get("user")
+		if !ok {
+			c.AbortWithStatus(http.StatusInternalServerError)
+			log.Println("[WARN] Check if the user exists in the context; if not, either skip the handler (abort) or let it run after logging a warning.")
+			return
+		}
 
-		csrf_exempt := ok && value.(bool)
-
-		if csrf_exempt {
+		if user == nil {
 			c.Next()
 			return
 		}
 
-		if inArray(ignoreMethods, c.Request.Method) && !ok {
+		csrfExempt, correct := CheckCsrfExempt(c)
+
+		if csrfExempt || (!correct && inArray(ignoreMethods, c.Request.Method)) {
 			c.Next()
 			return
 		}
@@ -61,17 +60,14 @@ func CSRFMiddleware(server *Server) gin.HandlerFunc {
 		token := tokenGetter(c)
 		tokenFromCookie, err := c.Cookie(CsrfCookie)
 		if token == "" {
-			c.JSON(http.StatusForbidden, "CSRF token missing in Headers")
-			c.Abort()
+			c.AbortWithStatusJSON(http.StatusForbidden, "CSRF token missing in Headers")
 			return
 		} else if err != nil {
-			c.JSON(http.StatusForbidden, "CSRF token missing in Cookie")
-			c.Abort()
+			c.AbortWithStatusJSON(http.StatusForbidden, "CSRF token missing in Cookie")
 			return
 		}
 		if tokenFromCookie != token {
-			c.JSON(http.StatusForbidden, "CSRF token mismatch")
-			c.Abort()
+			c.AbortWithStatusJSON(http.StatusForbidden, "CSRF token mismatch")
 			return
 		}
 

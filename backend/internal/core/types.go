@@ -24,12 +24,13 @@ type Server struct {
 	Eng         *gin.Engine
 	RoutesMap   map[string]Route
 	RedisServer *RedisServer
+	Mdls        []gin.HandlerFunc
 }
 
 type Route struct {
 	Method                string
 	Path                  string
-	HandlerFuncs          []gin.HandlerFunc
+	HandlerFunc           gin.HandlerFunc
 	NameSpace             string
 	DecoratorHandlerFuncs []gin.HandlerFunc
 }

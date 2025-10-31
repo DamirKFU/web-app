@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"io"
 	"net/http"
+	"slices"
 
 	"github.com/dchest/uniuri"
 	"github.com/gin-gonic/gin"
@@ -61,4 +62,24 @@ func Fail(c *gin.Context, code int, message string, fields map[string]string) {
 
 func Success(c *gin.Context, data any) {
 	JSONResponse(c, http.StatusOK, true, data, nil)
+}
+
+func inArray(arr []string, value string) bool {
+	inarr := slices.Contains(arr, value)
+
+	return inarr
+}
+
+func CheckCsrfExempt(c *gin.Context) (exempt bool, valid bool) {
+	value, exists := c.Get("csrf_exempt")
+	if !exists {
+		return false, false
+	}
+
+	csrfExempt, ok := value.(bool)
+	if !ok {
+		return false, false
+	}
+
+	return csrfExempt, true
 }

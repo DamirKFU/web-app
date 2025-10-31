@@ -18,6 +18,7 @@ func NewServer(cfg config.Config) *Server {
 		Eng:         gin.Default(),
 		RoutesMap:   make(map[string]Route),
 		RedisServer: NewRedisServer(cfg),
+		Mdls:        make([]gin.HandlerFunc, 0),
 	}
 }
 
@@ -39,17 +40,20 @@ func (s *Server) RegisterValidators(
 	}
 }
 
-func (s *Server) RegisterRoutes(group *gin.RouterGroup, routes []Route, mdls []gin.HandlerFunc) {
+func (s *Server) RegisterRoutes(group *gin.RouterGroup, routes []Route) {
 	for _, route := range routes {
-		allHandlers := append(route.DecoratorHandlerFuncs, mdls...)
-		allHandlers = append(allHandlers, route.HandlerFuncs...)
-
-		group.Handle(route.Method, route.Path, allHandlers...)
+		orderHandlers := append(route.DecoratorHandlerFuncs, s.Mdls...)
+		orderHandlers = append(orderHandlers, route.HandlerFunc)
+		group.Handle(route.Method, route.Path, orderHandlers...)
 		if _, exists := s.RoutesMap[route.NameSpace]; exists {
 			log.Printf("[WARN] Route namespace '%s' is repeated. Previous handler will be overwritten by the new one.\n", route.NameSpace)
 		}
 		s.RoutesMap[route.NameSpace] = route
 	}
+}
+
+func (s *Server) RegisterMiddlewares(mdls []gin.HandlerFunc) {
+	s.Mdls = append(s.Mdls, mdls...)
 }
 
 func (s *Server) Start() error {
