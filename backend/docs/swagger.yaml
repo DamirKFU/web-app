@@ -1,4 +1,11 @@
 definitions:
+  auth.ForgotPasswordRequest:
+    properties:
+      email:
+        type: string
+    required:
+    - email
+    type: object
   auth.LoginRequest:
     properties:
       password:
@@ -11,10 +18,36 @@ definitions:
     type: object
   auth.RegisterRequest:
     properties:
+      email:
+        type: string
       password:
+        minLength: 6
+        type: string
+      repeat_password:
         type: string
       username:
+        maxLength: 42
+        minLength: 3
         type: string
+    required:
+    - email
+    - password
+    - repeat_password
+    - username
+    type: object
+  auth.ResetPasswordRequest:
+    properties:
+      password:
+        minLength: 6
+        type: string
+      repeat_password:
+        type: string
+      token:
+        type: string
+    required:
+    - password
+    - repeat_password
+    - token
     type: object
   catalog.CategoryResponse:
     properties:
@@ -52,6 +85,43 @@ definitions:
 info:
   contact: {}
 paths:
+  /api/v1/auth/forgot:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Email address
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/auth.ForgotPasswordRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Reset email sent
+          schema:
+            allOf:
+            - $ref: '#/definitions/core.APIResponse'
+            - properties:
+                data:
+                  additionalProperties:
+                    type: string
+                  type: object
+              type: object
+        "400":
+          description: Bad request
+          schema:
+            allOf:
+            - $ref: '#/definitions/core.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/core.APIError'
+              type: object
+      summary: Request password reset
+      tags:
+      - auth
   /api/v1/auth/login:
     post:
       consumes:
@@ -98,6 +168,25 @@ paths:
       summary: Login user
       tags:
       - auth
+  /api/v1/auth/logout:
+    post:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Successfully logged out
+          schema:
+            allOf:
+            - $ref: '#/definitions/core.APIResponse'
+            - properties:
+                data:
+                  additionalProperties:
+                    type: string
+                  type: object
+              type: object
+      summary: Logout user
+      tags:
+      - auth
   /api/v1/auth/register:
     post:
       consumes:
@@ -133,6 +222,43 @@ paths:
                   $ref: '#/definitions/core.APIError'
               type: object
       summary: Register user
+      tags:
+      - auth
+  /api/v1/auth/reset:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Password reset data
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/auth.ResetPasswordRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Password successfully reset
+          schema:
+            allOf:
+            - $ref: '#/definitions/core.APIResponse'
+            - properties:
+                data:
+                  additionalProperties:
+                    type: string
+                  type: object
+              type: object
+        "400":
+          description: Bad request
+          schema:
+            allOf:
+            - $ref: '#/definitions/core.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/core.APIError'
+              type: object
+      summary: Reset password
       tags:
       - auth
   /api/v1/catalog/categories:

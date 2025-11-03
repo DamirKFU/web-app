@@ -1,11 +1,23 @@
 package auth
 
 type RegisterRequest struct {
-	Username string `json:"username" binding:"username"`
-	Password string `json:"password" binding:"password"`
+	Username       string `json:"username" binding:"required,min=3,max=42"`
+	Email          string `json:"email" binding:"required,email"`
+	Password       string `json:"password" binding:"required,min=6"`
+	RepeatPassword string `json:"repeat_password" binding:"required,eqfield=Password"`
 }
 
 type LoginRequest struct {
 	Username string `json:"username" binding:"required"`
 	Password string `json:"password" binding:"required"`
+}
+
+type ForgotPasswordRequest struct {
+	Email string `json:"email" binding:"required,email"`
+}
+
+type ResetPasswordRequest struct {
+	Token          string `json:"token" binding:"required"`
+	Password       string `json:"password" binding:"required,min=6"`
+	RepeatPassword string `json:"repeat_password" binding:"required,eqfield=Password"`
 }

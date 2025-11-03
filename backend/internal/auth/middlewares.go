@@ -20,7 +20,7 @@ func AuthenticationMiddleware(server *core.Server) gin.HandlerFunc {
 			return
 		}
 
-		claims := &core.Claims{}
+		claims := &Claims{}
 		token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (any, error) {
 			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 				return nil, jwt.ErrSignatureInvalid

@@ -4,15 +4,9 @@ import (
 	"app/config"
 
 	"github.com/gin-gonic/gin"
-	"github.com/golang-jwt/jwt/v5"
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 )
-
-type Claims struct {
-	UserID uint `json:"user_id"`
-	jwt.RegisteredClaims
-}
 
 type RedisServer struct {
 	RDB0 *redis.Client
@@ -24,6 +18,7 @@ type Server struct {
 	Eng         *gin.Engine
 	RoutesMap   map[string]Route
 	RedisServer *RedisServer
+	Email       *EmailSMTPEngine
 	Mdls        []gin.HandlerFunc
 }
 
@@ -50,4 +45,11 @@ type APIResponse struct {
 type APIError struct {
 	Message string            `json:"message"`
 	Fields  map[string]string `json:"fields,omitempty"`
+}
+
+type EmailSMTPEngine struct {
+	User     string `json:"user"`
+	Password string `json:"password"`
+	Host     string `json:"host"`
+	Port     string `json:"port"`
 }

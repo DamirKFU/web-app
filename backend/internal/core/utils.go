@@ -1,13 +1,19 @@
 package core
 
 import (
+	"bytes"
 	"crypto/sha1"
+	"crypto/sha256"
 	"encoding/base64"
+	"encoding/json"
+	"fmt"
+	"html/template"
 	"io"
 	"net/http"
 	"slices"
 
 	"github.com/dchest/uniuri"
+	"github.com/fernet/fernet-go"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 )
@@ -28,7 +34,7 @@ func GenerateCSRFToken(secret string) (string, error) {
 func ParseValidationError(err error) map[string]string {
 	fieldErrors := make(map[string]string)
 	for _, fe := range err.(validator.ValidationErrors) {
-		fieldErrors[fe.Field()] = fe.Error()
+		fieldErrors[fe.Field()] = fe.ActualTag()
 	}
 	return fieldErrors
 }
@@ -37,11 +43,13 @@ func HandleServiceError(c *gin.Context, err error) bool {
 	if err == nil {
 		return false
 	}
+
 	if se, ok := err.(*ServiceError); ok {
 		Fail(c, se.Code, se.Message, se.Fields)
 	} else {
 		Fail(c, http.StatusInternalServerError, "internal server error", nil)
 	}
+
 	return true
 }
 
@@ -64,6 +72,10 @@ func Success(c *gin.Context, data any) {
 	JSONResponse(c, http.StatusOK, true, data, nil)
 }
 
+func SuccessWithStatus(c *gin.Context, status int, data any) {
+	JSONResponse(c, status, true, data, nil)
+}
+
 func inArray(arr []string, value string) bool {
 	inarr := slices.Contains(arr, value)
 
@@ -82,4 +94,60 @@ func CheckCsrfExempt(c *gin.Context) (exempt bool, valid bool) {
 	}
 
 	return csrfExempt, true
+}
+
+func GeneratePayloadToken(payload any, secretKey string) (string, error) {
+	data, err := json.Marshal(payload)
+	if err != nil {
+		return "", err
+	}
+	hash := sha256.Sum256([]byte(secretKey))
+	keyString := base64.URLEncoding.EncodeToString(hash[:32])[:43]
+	key, err := fernet.DecodeKey(keyString + "=")
+	if err != nil {
+		return "", err
+	}
+
+	token, err := fernet.EncryptAndSign(data, key)
+	if err != nil {
+		return "", err
+	}
+
+	return string(token), nil
+}
+
+func VerifyPayloadToken[T any](token string, secretKey string) (*T, error) {
+	hash := sha256.Sum256([]byte(secretKey))
+	keyString := base64.URLEncoding.EncodeToString(hash[:32])[:43]
+	key, err := fernet.DecodeKey(keyString + "=")
+	if err != nil {
+		return nil, err
+	}
+
+	msg := fernet.VerifyAndDecrypt([]byte(token), 0, []*fernet.Key{key})
+
+	if msg == nil {
+		return nil, fmt.Errorf("invalid or expired token")
+	}
+
+	var payload T
+	if err := json.Unmarshal(msg, &payload); err != nil {
+		return nil, err
+	}
+
+	return &payload, nil
+}
+
+func RenderTextTemplate(filename string, data any) (string, error) {
+	tmpl, err := template.ParseFiles(filename)
+	if err != nil {
+		return "", err
+	}
+
+	var buf bytes.Buffer
+	if err := tmpl.Execute(&buf, data); err != nil {
+		return "", err
+	}
+
+	return buf.String(), nil
 }

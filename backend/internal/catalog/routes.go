@@ -21,7 +21,7 @@ func GetRoutes(s *core.Server) []core.Route {
 			Path:                  "/categories",
 			HandlerFunc:           au.GetCategories,
 			DecoratorHandlerFuncs: []gin.HandlerFunc{},
-			NameSpace:             "colors",
+			NameSpace:             "categories",
 		},
 	}
 

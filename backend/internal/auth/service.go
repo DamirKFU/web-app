@@ -3,7 +3,11 @@ package auth
 import (
 	"app/internal/core"
 	"app/internal/users"
+	"fmt"
+	"log"
 	"net/http"
+	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
@@ -17,7 +21,7 @@ func NewAuthService(server *core.Server) *AuthService {
 	return &AuthService{server: server}
 }
 
-func (service *AuthService) Register(username, password string) error {
+func (service *AuthService) Register(username, password, email string) error {
 	var existing users.User
 	if err := service.server.DB.Where("username = ?", username).First(&existing).Error; err == nil {
 		return &core.ServiceError{
@@ -26,8 +30,15 @@ func (service *AuthService) Register(username, password string) error {
 			Fields:  map[string]string{"username": "already exists"},
 		}
 	}
+	if err := service.server.DB.Where("normalize_email = ?", users.NormalizeEmail(email)).First(&existing).Error; err == nil {
+		return &core.ServiceError{
+			Code:    http.StatusBadRequest,
+			Message: "validation failed",
+			Fields:  map[string]string{"email": "already exists"},
+		}
+	}
 
-	user := users.User{Username: username}
+	user := users.User{Username: username, Email: email}
 	if err := user.SetPassword(password, service.server.Cfg.SecretKey); err != nil {
 		return &core.ServiceError{
 			Code:    http.StatusInternalServerError,
@@ -105,7 +116,7 @@ func (service *AuthService) RefreshTokens(c *gin.Context, oldRefreshToken string
 		}
 	}
 
-	token, err := jwt.ParseWithClaims(oldRefreshToken, &core.Claims{}, func(token *jwt.Token) (any, error) {
+	token, err := jwt.ParseWithClaims(oldRefreshToken, &Claims{}, func(token *jwt.Token) (any, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, jwt.ErrSignatureInvalid
 		}
@@ -118,7 +129,7 @@ func (service *AuthService) RefreshTokens(c *gin.Context, oldRefreshToken string
 		}
 	}
 
-	claims, ok := token.Claims.(*core.Claims)
+	claims, ok := token.Claims.(*Claims)
 	if !ok {
 		return "", "", &core.ServiceError{
 			Code:    http.StatusUnauthorized,
@@ -159,8 +170,102 @@ func (service *AuthService) RefreshTokens(c *gin.Context, oldRefreshToken string
 	return newAccess, newRefresh, nil
 }
 
-func (service *AuthService) DeleteRefreshToken(c *gin.Context, token string) {
+func (service *AuthService) Logout(c *gin.Context, token string) {
 	if token != "" {
 		service.server.RedisServer.RDB0.Del(c.Request.Context(), token).Err()
 	}
+}
+
+func (service *AuthService) ForgotPassword(c *gin.Context, email string) error {
+	var user users.User
+	if err := service.server.DB.Where("LOWER(email) = ?", strings.ToLower(email)).First(&user).Error; err != nil {
+		return nil
+	}
+
+	payload := ResetPayload{
+		UserID: user.ID,
+		Exp:    time.Now().Add(service.server.Cfg.PayloadTokenExpiresIn).Unix(),
+	}
+
+	token, err := core.GeneratePayloadToken(payload, service.server.Cfg.SecretKey)
+	if err != nil {
+		return &core.ServiceError{
+			Code:    http.StatusInternalServerError,
+			Message: err.Error(),
+		}
+	}
+
+	resetURL := fmt.Sprintf("%s/reset-password?token=%s", service.server.Cfg.FrontURL, token)
+	subject := "Сброс пароля"
+	data := struct {
+		Username string
+		ResetURL string
+	}{
+		Username: "Damir",
+		ResetURL: resetURL,
+	}
+
+	body, err := core.RenderTextTemplate("./templates/reset_password.txt", data)
+	if err != nil {
+		return &core.ServiceError{
+			Code:    http.StatusInternalServerError,
+			Message: err.Error(),
+			Fields:  nil,
+		}
+	}
+	go func() {
+		if err := service.server.Email.SendMail(
+			subject,
+			[]byte(body),
+			[]string{user.Email},
+		); err != nil {
+			log.Printf("[Email Error] failed to send mail to %s: %v", user.Email, err)
+		}
+		log.Printf("[DEBUG] send mail to %s", user.Email)
+	}()
+
+	return nil
+}
+
+func (service *AuthService) ResetPassword(c *gin.Context, token string, newPassword string) error {
+	payload, err := core.VerifyPayloadToken[ResetPayload](token, service.server.Cfg.SecretKey)
+	if err != nil {
+		return &core.ServiceError{
+			Code:    http.StatusBadRequest,
+			Message: "invalid token",
+			Fields:  map[string]string{"token": "invalid or malformed"},
+		}
+	}
+
+	if time.Now().Unix() > payload.Exp {
+		return &core.ServiceError{
+			Code:    http.StatusBadRequest,
+			Message: "token expired",
+			Fields:  map[string]string{"token": "expired"},
+		}
+	}
+
+	var user users.User
+	if err := service.server.DB.First(&user, payload.UserID).Error; err != nil {
+		return &core.ServiceError{
+			Code:    http.StatusInternalServerError,
+			Message: err.Error(),
+		}
+	}
+
+	if err := user.SetPassword(newPassword, service.server.Cfg.SecretKey); err != nil {
+		return &core.ServiceError{
+			Code:    http.StatusInternalServerError,
+			Message: err.Error(),
+		}
+	}
+
+	if err := service.server.DB.Save(&user).Error; err != nil {
+		return &core.ServiceError{
+			Code:    http.StatusInternalServerError,
+			Message: err.Error(),
+		}
+	}
+
+	return nil
 }

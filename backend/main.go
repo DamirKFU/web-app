@@ -33,6 +33,7 @@ func CreateApp(cfg config.Config) *core.Server {
 
 	base_group := s.Eng.Group("api/v1/")
 
+	users.RegisterApp(base_group, s)
 	auth.RegisterApp(base_group, s)
 	core.RegisterApp(base_group, s)
 	catalog.RegisterApp(base_group, s)
@@ -44,7 +45,6 @@ func CreateApp(cfg config.Config) *core.Server {
 func main() {
 	cfg := config.Load()
 	s := CreateApp(cfg)
-	log.Println(s.RoutesMap)
 	if err := s.Start(); err != nil {
 		log.Fatal(err)
 	}

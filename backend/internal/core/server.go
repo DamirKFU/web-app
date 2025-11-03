@@ -19,6 +19,7 @@ func NewServer(cfg config.Config) *Server {
 		RoutesMap:   make(map[string]Route),
 		RedisServer: NewRedisServer(cfg),
 		Mdls:        make([]gin.HandlerFunc, 0),
+		Email:       NewEmailSMTPEngine(cfg),
 	}
 }
 

@@ -27,6 +27,36 @@ func LoginHandler(c *gin.Context) {}
 // @Router /api/v1/auth/register [post]
 func RegisterHandler(c *gin.Context) {}
 
+// ForgotPasswordHandler godoc
+// @Summary Request password reset
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Param input body auth.ForgotPasswordRequest true "Email address"
+// @Success 200 {object} core.APIResponse{data=map[string]string} "Reset email sent"
+// @Failure 400 {object} core.APIResponse{error=core.APIError} "Bad request"
+// @Router /api/v1/auth/forgot [post]
+func ForgotPasswordHandler(c *gin.Context) {}
+
+// ResetPasswordHandler godoc
+// @Summary Reset password
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Param input body auth.ResetPasswordRequest true "Password reset data"
+// @Success 200 {object} core.APIResponse{data=map[string]string} "Password successfully reset"
+// @Failure 400 {object} core.APIResponse{error=core.APIError} "Bad request"
+// @Router /api/v1/auth/reset [post]
+func ResetPasswordHandler(c *gin.Context) {}
+
+// LogoutHandler godoc
+// @Summary Logout user
+// @Tags auth
+// @Produce json
+// @Success 200 {object} core.APIResponse{data=map[string]string} "Successfully logged out"
+// @Router /api/v1/auth/logout [post]
+func LogoutHandler(c *gin.Context) {}
+
 // ColorHandler godoc
 // @Summary Ger colors
 // @Tags catalog

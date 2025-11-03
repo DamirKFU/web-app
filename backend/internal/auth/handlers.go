@@ -22,11 +22,11 @@ func NewAuthController(server *core.Server) *AuthController {
 func (ctrl *AuthController) Register(c *gin.Context) {
 	var body RegisterRequest
 	if err := c.ShouldBindJSON(&body); err != nil {
-		core.Fail(c, http.StatusInternalServerError, "validation failed", core.ParseValidationError(err))
+		core.Fail(c, http.StatusBadRequest, "validation failed", core.ParseValidationError(err))
 		return
 	}
 
-	if core.HandleServiceError(c, ctrl.service.Register(body.Username, body.Password)) {
+	if core.HandleServiceError(c, ctrl.service.Register(body.Username, body.Password, body.Email)) {
 		return
 	}
 	core.Success(c, gin.H{"message": "user registered"})
@@ -35,7 +35,7 @@ func (ctrl *AuthController) Register(c *gin.Context) {
 func (ctrl *AuthController) Login(c *gin.Context) {
 	var body LoginRequest
 	if err := c.ShouldBindJSON(&body); err != nil {
-		core.Fail(c, http.StatusInternalServerError, "validation failed", core.ParseValidationError(err))
+		core.Fail(c, http.StatusBadRequest, "validation failed", core.ParseValidationError(err))
 		return
 	}
 
@@ -88,10 +88,38 @@ func (ctrl *AuthController) RefreshToken(c *gin.Context) {
 
 func (ctrl *AuthController) Logout(c *gin.Context) {
 	if oldRefreshToken, err := c.Cookie(ctrl.server.Cfg.JWT.RefreshCookie); err == nil {
-		ctrl.service.DeleteRefreshToken(c, oldRefreshToken)
+		ctrl.service.Logout(c, oldRefreshToken)
 	}
 	c.SetCookie(ctrl.server.Cfg.JWT.AccessCookie, "", -1, "/", "", false, true)
 	c.SetCookie(ctrl.server.Cfg.JWT.RefreshCookie, "", -1, "/", "", false, true)
 
 	core.Success(c, gin.H{"message": "logged out"})
+}
+
+func (ctrl *AuthController) ForgotPassword(c *gin.Context) {
+	var body ForgotPasswordRequest
+	if err := c.ShouldBindJSON(&body); err != nil {
+		core.Fail(c, http.StatusBadRequest, "validation failed", core.ParseValidationError(err))
+		return
+	}
+
+	if core.HandleServiceError(c, ctrl.service.ForgotPassword(c, body.Email)) {
+		return
+	}
+
+	core.Success(c, gin.H{"status": "ok"})
+}
+
+func (ctrl *AuthController) ResetPassword(c *gin.Context) {
+	var body ResetPasswordRequest
+	if err := c.ShouldBindJSON(&body); err != nil {
+		core.Fail(c, http.StatusBadRequest, "validation failed", core.ParseValidationError(err))
+		return
+	}
+
+	if core.HandleServiceError(c, ctrl.service.ResetPassword(c, body.Token, body.Password)) {
+		return
+	}
+
+	core.JSONResponse(c, http.StatusOK, true, gin.H{"status": "password_reset"}, nil)
 }

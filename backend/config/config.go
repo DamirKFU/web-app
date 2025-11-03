@@ -29,6 +29,13 @@ type JWT struct {
 	RefreshExpiresIn time.Duration `mapstructure:"refresh_expires_in"`
 }
 
+type SMTP struct {
+	Host     string `mapstructure:"host"`
+	Port     string `mapstructure:"port"`
+	User     string `mapstructure:"user"`
+	Password string `mapstructure:"password"`
+}
+
 type CORS struct {
 	AllowOrigins     []string `mapstructure:"allow_origins"`
 	AllowMethods     []string `mapstructure:"allow_methods"`
@@ -46,13 +53,16 @@ type CSRF struct {
 }
 
 type Config struct {
-	HTTP      HTTP     `mapstructure:"http"`
-	DB        Database `mapstructure:"database"`
-	JWT       JWT      `mapstructure:"jwt"`
-	CORS      CORS     `mapstructure:"cors"`
-	CSRF      CSRF     `mapstructure:"csrf"`
-	REDIS     REDIS    `mapstructure:"redis"`
-	SecretKey string   `mapstructure:"secret_key"`
+	HTTP                  HTTP          `mapstructure:"http"`
+	DB                    Database      `mapstructure:"database"`
+	JWT                   JWT           `mapstructure:"jwt"`
+	CORS                  CORS          `mapstructure:"cors"`
+	CSRF                  CSRF          `mapstructure:"csrf"`
+	REDIS                 REDIS         `mapstructure:"redis"`
+	SMTP                  SMTP          `mapstructure:"smtp"`
+	SecretKey             string        `mapstructure:"secret_key"`
+	PayloadTokenExpiresIn time.Duration `mapstructure:"payload_token_expires_in"`
+	FrontURL              string        `mapstructure:"front_url"`
 }
 
 func Load() Config {
@@ -70,6 +80,8 @@ func Load() Config {
 	v.SetDefault("jwt.refresh_cookie", "refresh_token")
 	v.SetDefault("jwt.access_expires_in", 15*time.Minute)
 	v.SetDefault("jwt.refresh_expires_in", 7*24*time.Hour)
+
+	v.SetDefault("payload_token_expires_in", time.Hour)
 
 	v.SetDefault("redis.addr", "localhost:6379")
 
