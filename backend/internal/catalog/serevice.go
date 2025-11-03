@@ -6,16 +6,22 @@ import (
 )
 
 type CatalogService struct {
-	server *core.Server
+	server          *core.Server
+	colorManager    *ColorManager
+	categoryManager *CategoryManager
 }
 
 func NewCatalogService(server *core.Server) *CatalogService {
-	return &CatalogService{server: server}
+	return &CatalogService{
+		server:          server,
+		colorManager:    NewColorManager(server),
+		categoryManager: NewCategoryManager(server),
+	}
 }
 
 func (s *CatalogService) GetColors() ([]Color, error) {
-	var colors []Color
-	if err := s.server.DB.Find(&colors).Error; err != nil {
+	colors, err := s.colorManager.GetAll()
+	if err != nil {
 		return nil, &core.ServiceError{
 			Code:    http.StatusInternalServerError,
 			Message: err.Error(),
@@ -25,8 +31,8 @@ func (s *CatalogService) GetColors() ([]Color, error) {
 }
 
 func (s *CatalogService) GetCategories() ([]Category, error) {
-	var categories []Category
-	if err := s.server.DB.Find(&categories).Error; err != nil {
+	categories, err := s.categoryManager.GetAll()
+	if err != nil {
 		return nil, &core.ServiceError{
 			Code:    http.StatusInternalServerError,
 			Message: err.Error(),

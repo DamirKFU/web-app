@@ -7,10 +7,12 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/golang-jwt/jwt/v5"
 )
 
 func AuthenticationMiddleware(server *core.Server) gin.HandlerFunc {
+	userManager := users.NewUserManager(server)
+	sessionManager := NewSessionManager(server)
+
 	return func(c *gin.Context) {
 		defer c.Next()
 
@@ -20,26 +22,25 @@ func AuthenticationMiddleware(server *core.Server) gin.HandlerFunc {
 			return
 		}
 
-		claims := &Claims{}
-		token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (any, error) {
-			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-				return nil, jwt.ErrSignatureInvalid
-			}
-			return []byte(server.Cfg.SecretKey), nil
-		})
-
-		if err != nil || !token.Valid {
+		claims, err := ParseToken(tokenString, server.Cfg.SecretKey)
+		if err != nil {
 			c.Set("user", nil)
 			return
 		}
 
-		var user users.User
-		if err := server.DB.First(&user, claims.UserID).Error; err != nil {
+		session, err := sessionManager.GetByID(claims.SessionID)
+		if err != nil || session == nil {
 			c.Set("user", nil)
 			return
 		}
 
-		c.Set("user", &user)
+		user, err := userManager.GetByID(claims.UserID)
+		if err != nil {
+			c.Set("user", nil)
+			return
+		}
+
+		c.Set("user", user)
 	}
 }
 
@@ -47,13 +48,13 @@ func AuthRequiredMiddleware(server *core.Server) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		el, ok := c.Get("user")
 		if !ok {
-			c.JSON(http.StatusInternalServerError, struct{}{})
+			core.Fail(c, http.StatusInternalServerError, "server error", nil)
+			log.Println("[ERROR] User not found in context; middleware must be applied after AuthenticationMiddleware")
 			c.Abort()
-			log.Println("[WARN] Check if the user exists in the context; if not, either skip the handler (abort) or let it run after logging a warning.")
 			return
 		}
 		if el == nil {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "user is not authenticated"})
+			core.Fail(c, http.StatusUnauthorized, "user is not authenticated", nil)
 			c.Abort()
 			return
 		}

@@ -10,27 +10,32 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/golang-jwt/jwt/v5"
 )
 
 type AuthService struct {
-	server *core.Server
+	server         *core.Server
+	userManager    *users.UserManager
+	sessionManager *SessionManager
 }
 
 func NewAuthService(server *core.Server) *AuthService {
-	return &AuthService{server: server}
+	return &AuthService{
+		server:         server,
+		userManager:    users.NewUserManager(server),
+		sessionManager: NewSessionManager(server),
+	}
 }
 
 func (service *AuthService) Register(username, password, email string) error {
-	var existing users.User
-	if err := service.server.DB.Where("username = ?", username).First(&existing).Error; err == nil {
+	if existing, err := service.userManager.GetByUsername(username); err == nil && existing != nil {
 		return &core.ServiceError{
 			Code:    http.StatusBadRequest,
 			Message: "validation failed",
 			Fields:  map[string]string{"username": "already exists"},
 		}
 	}
-	if err := service.server.DB.Where("normalize_email = ?", users.NormalizeEmail(email)).First(&existing).Error; err == nil {
+
+	if existing, err := service.userManager.GetByEmail(email); err == nil && existing != nil {
 		return &core.ServiceError{
 			Code:    http.StatusBadRequest,
 			Message: "validation failed",
@@ -46,7 +51,7 @@ func (service *AuthService) Register(username, password, email string) error {
 		}
 	}
 
-	if err := service.server.DB.Create(&user).Error; err != nil {
+	if err := service.userManager.Create(&user); err != nil {
 		return &core.ServiceError{
 			Code:    http.StatusInternalServerError,
 			Message: err.Error(),
@@ -56,33 +61,34 @@ func (service *AuthService) Register(username, password, email string) error {
 	return nil
 }
 
-func (service *AuthService) Login(c *gin.Context, username, password, oldrefreshToken string) (string, string, error) {
-	var user users.User
-
-	if oldrefreshToken != "" {
-		_ = service.server.RedisServer.RDB0.Del(c.Request.Context(), oldrefreshToken).Err()
+func (service *AuthService) Login(c *gin.Context, username, password, oldRefreshToken string) (string, string, error) {
+	if oldRefreshToken != "" {
+		service.server.RedisServer.RDB0.Del(c.Request.Context(), oldRefreshToken)
 	}
 
-	if err := service.server.DB.Where("username = ?", username).First(&user).Error; err != nil {
+	user, err := service.userManager.GetByUsername(username)
+	if err != nil || !user.CheckPassword(password, service.server.Cfg.SecretKey) {
 		return "", "", &core.ServiceError{
 			Code:    http.StatusUnauthorized,
 			Message: "invalid credentials",
 		}
 	}
 
-	if !user.CheckPassword(password, service.server.Cfg.SecretKey) {
+	session, err := service.sessionManager.Create(user.ID)
+	if err != nil {
 		return "", "", &core.ServiceError{
-			Code:    http.StatusUnauthorized,
-			Message: "invalid credentials",
+			Code:    http.StatusInternalServerError,
+			Message: "could not create session",
 		}
 	}
 
 	accessToken, refreshToken, err := GenerateTokens(
-		user.ID, service.server.Cfg.SecretKey,
+		user.ID,
+		session.ID,
+		service.server.Cfg.SecretKey,
 		service.server.Cfg.JWT.AccessExpiresIn,
 		service.server.Cfg.JWT.RefreshExpiresIn,
 	)
-
 	if err != nil {
 		return "", "", &core.ServiceError{
 			Code:    http.StatusInternalServerError,
@@ -96,7 +102,6 @@ func (service *AuthService) Login(c *gin.Context, username, password, oldrefresh
 		user.ID,
 		service.server.Cfg.JWT.RefreshExpiresIn,
 	).Err()
-
 	if err != nil {
 		return "", "", &core.ServiceError{
 			Code:    http.StatusInternalServerError,
@@ -116,34 +121,21 @@ func (service *AuthService) RefreshTokens(c *gin.Context, oldRefreshToken string
 		}
 	}
 
-	token, err := jwt.ParseWithClaims(oldRefreshToken, &Claims{}, func(token *jwt.Token) (any, error) {
-		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, jwt.ErrSignatureInvalid
-		}
-		return []byte(service.server.Cfg.SecretKey), nil
-	})
-	if err != nil || !token.Valid {
+	claims, err := ParseToken(oldRefreshToken, service.server.Cfg.SecretKey)
+	if err != nil {
 		return "", "", &core.ServiceError{
 			Code:    http.StatusUnauthorized,
 			Message: "invalid refresh token",
 		}
 	}
 
-	claims, ok := token.Claims.(*Claims)
-	if !ok {
-		return "", "", &core.ServiceError{
-			Code:    http.StatusUnauthorized,
-			Message: "invalid claims",
-		}
-	}
-
 	newAccess, newRefresh, err := GenerateTokens(
 		claims.UserID,
+		claims.SessionID,
 		service.server.Cfg.SecretKey,
 		service.server.Cfg.JWT.AccessExpiresIn,
 		service.server.Cfg.JWT.RefreshExpiresIn,
 	)
-
 	if err != nil {
 		return "", "", &core.ServiceError{
 			Code:    http.StatusInternalServerError,
@@ -153,32 +145,32 @@ func (service *AuthService) RefreshTokens(c *gin.Context, oldRefreshToken string
 
 	service.server.RedisServer.RDB0.Del(c.Request.Context(), oldRefreshToken)
 
-	err = service.server.RedisServer.RDB0.Set(
+	service.server.RedisServer.RDB0.Set(
 		c.Request.Context(),
 		newRefresh,
 		claims.UserID,
 		service.server.Cfg.JWT.RefreshExpiresIn,
-	).Err()
-
-	if err != nil {
-		return "", "", &core.ServiceError{
-			Code:    http.StatusInternalServerError,
-			Message: "could not save new refresh token",
-		}
-	}
+	)
 
 	return newAccess, newRefresh, nil
 }
 
 func (service *AuthService) Logout(c *gin.Context, token string) {
-	if token != "" {
-		service.server.RedisServer.RDB0.Del(c.Request.Context(), token).Err()
+	if token == "" {
+		return
+	}
+
+	service.server.RedisServer.RDB0.Del(c.Request.Context(), token)
+
+	claims, err := ParseToken(token, service.server.Cfg.SecretKey)
+	if err == nil {
+		service.sessionManager.Delete(claims.SessionID)
 	}
 }
 
 func (service *AuthService) ForgotPassword(c *gin.Context, email string) error {
-	var user users.User
-	if err := service.server.DB.Where("LOWER(email) = ?", strings.ToLower(email)).First(&user).Error; err != nil {
+	user, err := service.userManager.GetByEmail(strings.ToLower(email))
+	if err != nil {
 		return nil
 	}
 
@@ -201,7 +193,7 @@ func (service *AuthService) ForgotPassword(c *gin.Context, email string) error {
 		Username string
 		ResetURL string
 	}{
-		Username: "Damir",
+		Username: user.Username,
 		ResetURL: resetURL,
 	}
 
@@ -210,9 +202,9 @@ func (service *AuthService) ForgotPassword(c *gin.Context, email string) error {
 		return &core.ServiceError{
 			Code:    http.StatusInternalServerError,
 			Message: err.Error(),
-			Fields:  nil,
 		}
 	}
+
 	go func() {
 		if err := service.server.Email.SendMail(
 			subject,
@@ -220,8 +212,9 @@ func (service *AuthService) ForgotPassword(c *gin.Context, email string) error {
 			[]string{user.Email},
 		); err != nil {
 			log.Printf("[Email Error] failed to send mail to %s: %v", user.Email, err)
+		} else {
+			log.Printf("[DEBUG] sent password reset email to %s", user.Email)
 		}
-		log.Printf("[DEBUG] send mail to %s", user.Email)
 	}()
 
 	return nil
@@ -245,8 +238,8 @@ func (service *AuthService) ResetPassword(c *gin.Context, token string, newPassw
 		}
 	}
 
-	var user users.User
-	if err := service.server.DB.First(&user, payload.UserID).Error; err != nil {
+	user, err := service.userManager.GetByID(payload.UserID)
+	if err != nil {
 		return &core.ServiceError{
 			Code:    http.StatusInternalServerError,
 			Message: err.Error(),
@@ -260,7 +253,7 @@ func (service *AuthService) ResetPassword(c *gin.Context, token string, newPassw
 		}
 	}
 
-	if err := service.server.DB.Save(&user).Error; err != nil {
+	if err := service.userManager.Save(user); err != nil {
 		return &core.ServiceError{
 			Code:    http.StatusInternalServerError,
 			Message: err.Error(),

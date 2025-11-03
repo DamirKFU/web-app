@@ -40,8 +40,9 @@ func CSRFMiddleware(server *Server) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		user, ok := c.Get("user")
 		if !ok {
-			c.AbortWithStatus(http.StatusInternalServerError)
+			Fail(c, http.StatusForbidden, "server error", nil)
 			log.Println("[WARN] Check if the user exists in the context; if not, either skip the handler (abort) or let it run after logging a warning.")
+			c.Abort()
 			return
 		}
 
@@ -60,14 +61,17 @@ func CSRFMiddleware(server *Server) gin.HandlerFunc {
 		token := tokenGetter(c)
 		tokenFromCookie, err := c.Cookie(CsrfCookie)
 		if token == "" {
-			c.AbortWithStatusJSON(http.StatusForbidden, "CSRF token missing in Headers")
+			Fail(c, http.StatusForbidden, "CSRF token missing in Headers", nil)
+			c.Abort()
 			return
 		} else if err != nil {
-			c.AbortWithStatusJSON(http.StatusForbidden, "CSRF token missing in Cookie")
+			Fail(c, http.StatusForbidden, "CSRF token missing in Cookie", nil)
+			c.Abort()
 			return
 		}
 		if tokenFromCookie != token {
-			c.AbortWithStatusJSON(http.StatusForbidden, "CSRF token mismatch")
+			Fail(c, http.StatusForbidden, "CSRF token mismatch", nil)
+			c.Abort()
 			return
 		}
 
