@@ -49,3 +49,18 @@ func (ctrl *CatalogController) GetCategories(c *gin.Context) {
 
 	core.Success(c, response)
 }
+
+func (ctrl *CatalogController) GetGarments(c *gin.Context) {
+	garments, err := ctrl.service.GetGarments()
+	if core.HandleServiceError(c, err) {
+		return
+	}
+
+	var response []GarmentResponse
+	if err := copier.Copy(&response, &garments); err != nil {
+		core.Fail(c, http.StatusInternalServerError, "Failed to process data", nil)
+		return
+	}
+
+	core.Success(c, response)
+}

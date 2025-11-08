@@ -25,7 +25,7 @@ type Server struct {
 type Route struct {
 	Method                string
 	Path                  string
-	HandlerFunc           gin.HandlerFunc
+	HandlerFuncs          []gin.HandlerFunc
 	NameSpace             string
 	DecoratorHandlerFuncs []gin.HandlerFunc
 }

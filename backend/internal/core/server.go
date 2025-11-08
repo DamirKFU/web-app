@@ -44,7 +44,7 @@ func (s *Server) RegisterValidators(
 func (s *Server) RegisterRoutes(group *gin.RouterGroup, routes []Route) {
 	for _, route := range routes {
 		orderHandlers := append(route.DecoratorHandlerFuncs, s.Mdls...)
-		orderHandlers = append(orderHandlers, route.HandlerFunc)
+		orderHandlers = append(orderHandlers, route.HandlerFuncs...)
 		group.Handle(route.Method, route.Path, orderHandlers...)
 		if _, exists := s.RoutesMap[route.NameSpace]; exists {
 			log.Printf("[WARN] Route namespace '%s' is repeated. Previous handler will be overwritten by the new one.\n", route.NameSpace)

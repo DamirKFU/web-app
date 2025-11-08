@@ -1,10 +1,12 @@
 package auth
 
+import "app/internal/core"
+
 type RegisterRequest struct {
-	Username       string `json:"username" binding:"required,min=3,max=42"`
-	Email          string `json:"email" binding:"required,email"`
-	Password       string `json:"password" binding:"required,min=6"`
-	RepeatPassword string `json:"repeat_password" binding:"required,eqfield=Password"`
+	Username       string `json:"username" binding:"UsersUsername"`
+	Email          string `json:"email" binding:"UsersEmail"`
+	Password       string `json:"password" binding:"DtoUsersPassword"`
+	RepeatPassword string `json:"repeat_password" binding:"RepeatUsersPassword"`
 }
 
 type LoginRequest struct {
@@ -13,11 +15,15 @@ type LoginRequest struct {
 }
 
 type ForgotPasswordRequest struct {
-	Email string `json:"email" binding:"required,email"`
+	Email string `json:"email" binding:"UsersEmail"`
 }
 
 type ResetPasswordRequest struct {
-	Token          string `json:"token" binding:"required"`
-	Password       string `json:"password" binding:"required,min=6"`
-	RepeatPassword string `json:"repeat_password" binding:"required,eqfield=Password"`
+	core.AbstractTokenRequest
+	Password       string `json:"password" binding:"DtoUsersPassword"`
+	RepeatPassword string `json:"repeat_password" binding:"RepeatUsersPassword"`
+}
+
+type RegisterConfirmRequest struct {
+	core.AbstractTokenRequest
 }

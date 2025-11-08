@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"time"
 
 	"app/config"
 	"app/internal/auth"
@@ -9,7 +10,7 @@ import (
 	"app/internal/core"
 	"app/internal/users"
 
-	_ "app/docs" // <- обязательно, чтобы swag зарегистрировал JSON
+	_ "app/docs"
 
 	"github.com/gin-gonic/gin"
 	swaggerFiles "github.com/swaggo/files"
@@ -25,8 +26,11 @@ func CreateApp(cfg config.Config) *core.Server {
 
 	base_mdls := []gin.HandlerFunc{
 		core.CorsMiddleware(s),
+		core.LimitRequestBodySizeMiddleware(s),
+		core.XSSMiddleware(s),
 		auth.AuthenticationMiddleware(s),
 		core.CSRFMiddleware(s),
+		core.RateLimiterMiddleware(s, "general", 20, 60*time.Second),
 	}
 
 	s.RegisterMiddlewares(base_mdls)

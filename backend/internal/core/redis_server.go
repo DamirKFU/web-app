@@ -6,6 +6,7 @@ import (
 	"log"
 
 	"github.com/redis/go-redis/v9"
+	"github.com/redis/go-redis/v9/maintnotifications"
 )
 
 func NewRedisServer(cfg config.Config) *RedisServer {
@@ -13,6 +14,9 @@ func NewRedisServer(cfg config.Config) *RedisServer {
 		Addr:     cfg.REDIS.Addr,
 		Password: cfg.REDIS.Password,
 		DB:       0,
+		MaintNotificationsConfig: &maintnotifications.Config{
+			Mode: maintnotifications.ModeDisabled,
+		},
 	})
 
 	if _, err := rdb0.Ping(context.Background()).Result(); err != nil {

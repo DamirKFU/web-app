@@ -29,7 +29,20 @@ func (ctrl *AuthController) Register(c *gin.Context) {
 	if core.HandleServiceError(c, ctrl.service.Register(body.Username, body.Password, body.Email)) {
 		return
 	}
-	core.Success(c, gin.H{"message": "user registered"})
+	core.Success(c, gin.H{"message": "data is valid"})
+}
+
+func (ctrl *AuthController) RegisterConfirm(c *gin.Context) {
+	var body RegisterConfirmRequest
+	if err := c.ShouldBindJSON(&body); err != nil {
+		core.Fail(c, http.StatusBadRequest, "validation failed", core.ParseValidationError(err))
+		return
+	}
+
+	if core.HandleServiceError(c, ctrl.service.RegisterConfirm(body.Token)) {
+		return
+	}
+	core.SuccessWithStatus(c, http.StatusCreated, gin.H{"message": "user registered"})
 }
 
 func (ctrl *AuthController) Login(c *gin.Context) {
@@ -39,9 +52,7 @@ func (ctrl *AuthController) Login(c *gin.Context) {
 		return
 	}
 
-	oldrefreshToken, _ := c.Cookie(ctrl.server.Cfg.JWT.RefreshCookie)
-
-	accessToken, refreshToken, err := ctrl.service.Login(c, body.Username, body.Password, oldrefreshToken)
+	accessToken, refreshToken, err := ctrl.service.Login(c, body.Username, body.Password)
 	if core.HandleServiceError(c, err) {
 		return
 	}
@@ -120,6 +131,5 @@ func (ctrl *AuthController) ResetPassword(c *gin.Context) {
 	if core.HandleServiceError(c, ctrl.service.ResetPassword(c, body.Token, body.Password)) {
 		return
 	}
-
-	core.JSONResponse(c, http.StatusOK, true, gin.H{"status": "password_reset"}, nil)
+	core.Success(c, gin.H{"status": "password_reset"})
 }

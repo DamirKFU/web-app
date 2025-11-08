@@ -63,6 +63,7 @@ type Config struct {
 	SecretKey             string        `mapstructure:"secret_key"`
 	PayloadTokenExpiresIn time.Duration `mapstructure:"payload_token_expires_in"`
 	FrontURL              string        `mapstructure:"front_url"`
+	LimitBodySize         int64         `mapstructure:"limit_body_size"`
 }
 
 func Load() Config {
@@ -82,6 +83,7 @@ func Load() Config {
 	v.SetDefault("jwt.refresh_expires_in", 7*24*time.Hour)
 
 	v.SetDefault("payload_token_expires_in", time.Hour)
+	v.SetDefault("limit_body_size", 1024)
 
 	v.SetDefault("redis.addr", "localhost:6379")
 

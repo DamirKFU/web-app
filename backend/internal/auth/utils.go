@@ -1,7 +1,7 @@
 package auth
 
 import (
-	"fmt"
+	"errors"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -33,7 +33,7 @@ func GenerateTokens(userID, sessionID uint, secretKey string, accessExpiresIn ti
 
 func ParseToken(tokenString string, secretKey string) (*Claims, error) {
 	if tokenString == "" {
-		return nil, fmt.Errorf("empty token string")
+		return nil, errors.New("empty token string")
 	}
 
 	claims := &Claims{}
@@ -50,7 +50,7 @@ func ParseToken(tokenString string, secretKey string) (*Claims, error) {
 	}
 
 	if !token.Valid {
-		return nil, fmt.Errorf("invalid token")
+		return nil, errors.New("invalid token")
 	}
 
 	return claims, nil

@@ -10,3 +10,12 @@ type ColorResponse struct {
 type CategoryResponse struct {
 	core.AbstractNameModelResponce
 }
+
+type GarmentResponse struct {
+	ID       uint              `json:"id"`
+	Size     string            `json:"size"`
+	Image    string            `json:"image"`
+	Count    uint              `json:"count"`
+	Category *CategoryResponse `json:"category"`
+	Color    *ColorResponse    `json:"color"`
+}

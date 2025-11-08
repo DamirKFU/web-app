@@ -3,8 +3,6 @@ package auth
 import (
 	"app/internal/core"
 	"app/internal/users"
-	"fmt"
-	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -26,25 +24,40 @@ func NewAuthService(server *core.Server) *AuthService {
 	}
 }
 
-func (service *AuthService) Register(username, password, email string) error {
-	if existing, err := service.userManager.GetByUsername(username); err == nil && existing != nil {
+func (service *AuthService) RegisterConfirm(token string) error {
+	payload, err := core.VerifyPayloadToken[RegisterPayload](token, service.server.Cfg.SecretKey)
+	if err != nil {
 		return &core.ServiceError{
 			Code:    http.StatusBadRequest,
 			Message: "validation failed",
-			Fields:  map[string]string{"username": "already exists"},
+			Fields:  map[string]string{"token": "invalid or malformed"},
 		}
 	}
 
-	if existing, err := service.userManager.GetByEmail(email); err == nil && existing != nil {
+	if time.Now().Unix() > payload.Exp {
 		return &core.ServiceError{
 			Code:    http.StatusBadRequest,
 			Message: "validation failed",
-			Fields:  map[string]string{"email": "already exists"},
+			Fields:  map[string]string{"token": "expired"},
 		}
 	}
 
-	user := users.User{Username: username, Email: email}
-	if err := user.SetPassword(password, service.server.Cfg.SecretKey); err != nil {
+	if existing, err := service.userManager.GetByUsername(payload.Username); err == nil && existing != nil {
+		return &core.ServiceError{
+			Code:    http.StatusBadRequest,
+			Message: "username already exists",
+		}
+	}
+
+	if existing, err := service.userManager.GetByEmail(payload.Email); err == nil && existing != nil {
+		return &core.ServiceError{
+			Code:    http.StatusBadRequest,
+			Message: "email already exists",
+		}
+	}
+
+	user := users.User{Username: payload.Username, Email: payload.Email}
+	if err := user.SetPassword(payload.Password, service.server.Cfg.SecretKey); err != nil {
 		return &core.ServiceError{
 			Code:    http.StatusInternalServerError,
 			Message: err.Error(),
@@ -61,11 +74,58 @@ func (service *AuthService) Register(username, password, email string) error {
 	return nil
 }
 
-func (service *AuthService) Login(c *gin.Context, username, password, oldRefreshToken string) (string, string, error) {
-	if oldRefreshToken != "" {
-		service.server.RedisServer.RDB0.Del(c.Request.Context(), oldRefreshToken)
+func (service *AuthService) Register(username, password, email string) error {
+	if existing, err := service.userManager.GetByUsername(username); err == nil && existing != nil {
+		return &core.ServiceError{
+			Code:    http.StatusBadRequest,
+			Message: "validation failed",
+			Fields:  map[string]string{"username": "already exists"},
+		}
 	}
 
+	if existing, err := service.userManager.GetByEmail(email); err == nil && existing != nil {
+		return &core.ServiceError{
+			Code:    http.StatusBadRequest,
+			Message: "validation failed",
+			Fields:  map[string]string{"email": "already exists"},
+		}
+	}
+	payload := RegisterPayload{
+		Username: username,
+		Email:    email,
+		Password: password,
+		Exp:      time.Now().Add(service.server.Cfg.PayloadTokenExpiresIn).Unix(),
+	}
+
+	token, err := core.GeneratePayloadToken(payload, service.server.Cfg.SecretKey)
+	if err != nil {
+		return &core.ServiceError{
+			Code:    http.StatusInternalServerError,
+			Message: err.Error(),
+		}
+	}
+	user := &users.User{
+		Username: username,
+		Email:    email,
+	}
+
+	err = SendRegistrationEmail(
+		service.server.Email,
+		user,
+		service.server.Cfg.FrontURL,
+		token,
+	)
+	if err != nil {
+		return &core.ServiceError{
+			Code:    http.StatusInternalServerError,
+			Message: err.Error(),
+		}
+	}
+
+	return nil
+}
+
+func (service *AuthService) Login(c *gin.Context, username, password string) (string, string, error) {
 	user, err := service.userManager.GetByUsername(username)
 	if err != nil || !user.CheckPassword(password, service.server.Cfg.SecretKey) {
 		return "", "", &core.ServiceError{
@@ -96,33 +156,20 @@ func (service *AuthService) Login(c *gin.Context, username, password, oldRefresh
 		}
 	}
 
-	err = service.server.RedisServer.RDB0.Set(
-		c.Request.Context(),
-		refreshToken,
-		user.ID,
-		service.server.Cfg.JWT.RefreshExpiresIn,
-	).Err()
-	if err != nil {
-		return "", "", &core.ServiceError{
-			Code:    http.StatusInternalServerError,
-			Message: "could not save refresh token",
-		}
-	}
-
 	return accessToken, refreshToken, nil
 }
 
 func (service *AuthService) RefreshTokens(c *gin.Context, oldRefreshToken string) (string, string, error) {
-	_, err := service.server.RedisServer.RDB0.Get(c, oldRefreshToken).Result()
+	claims, err := ParseToken(oldRefreshToken, service.server.Cfg.SecretKey)
 	if err != nil {
 		return "", "", &core.ServiceError{
 			Code:    http.StatusUnauthorized,
-			Message: "refresh token not found or expired",
+			Message: "invalid refresh token",
 		}
 	}
 
-	claims, err := ParseToken(oldRefreshToken, service.server.Cfg.SecretKey)
-	if err != nil {
+	session, err := service.sessionManager.GetByID(claims.SessionID)
+	if err != nil || session == nil {
 		return "", "", &core.ServiceError{
 			Code:    http.StatusUnauthorized,
 			Message: "invalid refresh token",
@@ -143,15 +190,6 @@ func (service *AuthService) RefreshTokens(c *gin.Context, oldRefreshToken string
 		}
 	}
 
-	service.server.RedisServer.RDB0.Del(c.Request.Context(), oldRefreshToken)
-
-	service.server.RedisServer.RDB0.Set(
-		c.Request.Context(),
-		newRefresh,
-		claims.UserID,
-		service.server.Cfg.JWT.RefreshExpiresIn,
-	)
-
 	return newAccess, newRefresh, nil
 }
 
@@ -159,8 +197,6 @@ func (service *AuthService) Logout(c *gin.Context, token string) {
 	if token == "" {
 		return
 	}
-
-	service.server.RedisServer.RDB0.Del(c.Request.Context(), token)
 
 	claims, err := ParseToken(token, service.server.Cfg.SecretKey)
 	if err == nil {
@@ -187,36 +223,18 @@ func (service *AuthService) ForgotPassword(c *gin.Context, email string) error {
 		}
 	}
 
-	resetURL := fmt.Sprintf("%s/reset-password?token=%s", service.server.Cfg.FrontURL, token)
-	subject := "Сброс пароля"
-	data := struct {
-		Username string
-		ResetURL string
-	}{
-		Username: user.Username,
-		ResetURL: resetURL,
-	}
-
-	body, err := core.RenderTextTemplate("./templates/reset_password.txt", data)
+	err = SendRegistrationEmail(
+		service.server.Email,
+		user,
+		service.server.Cfg.FrontURL,
+		token,
+	)
 	if err != nil {
 		return &core.ServiceError{
 			Code:    http.StatusInternalServerError,
 			Message: err.Error(),
 		}
 	}
-
-	go func() {
-		if err := service.server.Email.SendMail(
-			subject,
-			[]byte(body),
-			[]string{user.Email},
-		); err != nil {
-			log.Printf("[Email Error] failed to send mail to %s: %v", user.Email, err)
-		} else {
-			log.Printf("[DEBUG] sent password reset email to %s", user.Email)
-		}
-	}()
-
 	return nil
 }
 

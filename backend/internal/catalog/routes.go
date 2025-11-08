@@ -12,16 +12,23 @@ func GetRoutes(s *core.Server) []core.Route {
 		{
 			Method:                "GET",
 			Path:                  "/colors",
-			HandlerFunc:           au.GetColors,
+			HandlerFuncs:          []gin.HandlerFunc{au.GetColors},
 			DecoratorHandlerFuncs: []gin.HandlerFunc{},
 			NameSpace:             "colors",
 		},
 		{
 			Method:                "GET",
 			Path:                  "/categories",
-			HandlerFunc:           au.GetCategories,
+			HandlerFuncs:          []gin.HandlerFunc{au.GetCategories},
 			DecoratorHandlerFuncs: []gin.HandlerFunc{},
 			NameSpace:             "categories",
+		},
+		{
+			Method:                "GET",
+			Path:                  "/garments",
+			HandlerFuncs:          []gin.HandlerFunc{au.GetGarments},
+			DecoratorHandlerFuncs: []gin.HandlerFunc{},
+			NameSpace:             "garments",
 		},
 	}
 

@@ -16,6 +16,13 @@ definitions:
     - password
     - username
     type: object
+  auth.RegisterConfirmRequest:
+    properties:
+      token:
+        type: string
+    required:
+    - token
+    type: object
   auth.RegisterRequest:
     properties:
       email:
@@ -63,6 +70,21 @@ definitions:
       id:
         type: integer
       name:
+        type: string
+    type: object
+  catalog.GarmentResponse:
+    properties:
+      category:
+        $ref: '#/definitions/catalog.CategoryResponse'
+      color:
+        $ref: '#/definitions/catalog.ColorResponse'
+      count:
+        type: integer
+      id:
+        type: integer
+      image:
+        type: string
+      size:
         type: string
     type: object
   core.APIError:
@@ -224,6 +246,43 @@ paths:
       summary: Register user
       tags:
       - auth
+  /api/v1/auth/register-confirm:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Confirmation token
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/auth.RegisterConfirmRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: User successfully registered
+          schema:
+            allOf:
+            - $ref: '#/definitions/core.APIResponse'
+            - properties:
+                data:
+                  additionalProperties:
+                    type: string
+                  type: object
+              type: object
+        "400":
+          description: Bad request
+          schema:
+            allOf:
+            - $ref: '#/definitions/core.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/core.APIError'
+              type: object
+      summary: Confirm user registration
+      tags:
+      - auth
   /api/v1/auth/reset:
     post:
       consumes:
@@ -315,6 +374,34 @@ paths:
                   $ref: '#/definitions/core.APIError'
               type: object
       summary: Ger colors
+      tags:
+      - catalog
+  /api/v1/catalog/garments:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Successfully get garments
+          schema:
+            allOf:
+            - $ref: '#/definitions/core.APIResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/catalog.GarmentResponse'
+                  type: array
+              type: object
+        "400":
+          description: Bad request
+          schema:
+            allOf:
+            - $ref: '#/definitions/core.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/core.APIError'
+              type: object
+      summary: Get garments
       tags:
       - catalog
 swagger: "2.0"

@@ -1,11 +1,15 @@
 package core
 
 import (
+	"fmt"
 	"log"
 	"net/http"
+	"time"
 
+	"github.com/dvwright/xss-mw"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"github.com/redis/go-redis/v9"
 )
 
 func CorsMiddleware(server *Server) gin.HandlerFunc {
@@ -91,4 +95,62 @@ func CsrfEnforceMiddleware(server *Server) gin.HandlerFunc {
 		c.Set("csrf_exempt", false)
 		c.Next()
 	}
+}
+
+func XSSMiddleware(server *Server) gin.HandlerFunc {
+	xssMdlwr := &xss.XssMw{}
+	return xssMdlwr.RemoveXss()
+}
+
+func LimitRequestBodySizeMiddleware(server *Server) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		c.Request.Body = http.MaxBytesReader(
+			c.Writer,
+			c.Request.Body,
+			server.Cfg.LimitBodySize,
+		)
+		c.Next()
+	}
+}
+
+func RateLimiterMiddleware(server *Server, key string, limit int, slidingWindow time.Duration) gin.HandlerFunc {
+	redisClient := server.RedisServer.RDB0
+	slidingWindow = 60 * time.Second
+
+	return func(c *gin.Context) {
+		ctx := c.Request.Context()
+		now := time.Now().UnixNano()
+		userCntKey := fmt.Sprint(c.ClientIP(), ":", key)
+
+		redisClient.ZRemRangeByScore(
+			ctx,
+			userCntKey,
+			"0",
+			fmt.Sprint(now-(slidingWindow.Nanoseconds())),
+		).Result()
+
+		reqs, _ := redisClient.ZRange(ctx, userCntKey, 0, -1).Result()
+
+		if len(reqs) >= limit {
+			Fail(c, http.StatusTooManyRequests, "too many request", nil)
+			c.Abort()
+			return
+		}
+
+		c.Next()
+		redisClient.ZAddNX(
+			ctx,
+			userCntKey,
+			redis.Z{
+				Score:  float64(now),
+				Member: float64(now),
+			},
+		)
+		redisClient.Expire(
+			ctx,
+			userCntKey,
+			slidingWindow,
+		)
+	}
+
 }

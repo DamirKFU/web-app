@@ -2,54 +2,64 @@ package auth
 
 import (
 	"app/internal/core"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
 
 func GetRoutes(s *core.Server) []core.Route {
 	au := NewAuthController(s)
+	register_rate_limit := core.RateLimiterMiddleware(s, "general", 20, 60*time.Second)
+	csrf_exempt := core.CsrfExemptMiddleware(s)
 	routes := []core.Route{
 		{
 			Method:                "POST",
 			Path:                  "/login",
-			HandlerFunc:           au.Login,
-			DecoratorHandlerFuncs: []gin.HandlerFunc{core.CsrfExemptMiddleware(s)},
-			NameSpace:             "3",
+			HandlerFuncs:          []gin.HandlerFunc{au.Login},
+			DecoratorHandlerFuncs: []gin.HandlerFunc{csrf_exempt},
+			NameSpace:             "login",
+		},
+		{
+			Method:                "POST",
+			Path:                  "/register-confirm",
+			HandlerFuncs:          []gin.HandlerFunc{au.RegisterConfirm},
+			DecoratorHandlerFuncs: []gin.HandlerFunc{csrf_exempt},
+			NameSpace:             "register_confirm",
 		},
 		{
 			Method:                "POST",
 			Path:                  "/register",
-			HandlerFunc:           au.Register,
-			DecoratorHandlerFuncs: []gin.HandlerFunc{core.CsrfExemptMiddleware(s)},
-			NameSpace:             "4",
+			HandlerFuncs:          []gin.HandlerFunc{au.Register},
+			DecoratorHandlerFuncs: []gin.HandlerFunc{register_rate_limit, csrf_exempt},
+			NameSpace:             "register",
 		},
 		{
 			Method:                "POST",
 			Path:                  "/logout",
-			HandlerFunc:           au.Logout,
-			DecoratorHandlerFuncs: []gin.HandlerFunc{core.CsrfExemptMiddleware(s)},
-			NameSpace:             "5",
+			HandlerFuncs:          []gin.HandlerFunc{au.Logout},
+			DecoratorHandlerFuncs: []gin.HandlerFunc{csrf_exempt},
+			NameSpace:             "logout",
 		},
 		{
 			Method:                "POST",
 			Path:                  "/refresh",
-			HandlerFunc:           au.RefreshToken,
-			DecoratorHandlerFuncs: []gin.HandlerFunc{core.CsrfExemptMiddleware(s)},
-			NameSpace:             "6",
+			HandlerFuncs:          []gin.HandlerFunc{au.RefreshToken},
+			DecoratorHandlerFuncs: []gin.HandlerFunc{csrf_exempt},
+			NameSpace:             "refresh",
 		},
 		{
 			Method:                "POST",
 			Path:                  "/forgot",
-			HandlerFunc:           au.ForgotPassword,
-			DecoratorHandlerFuncs: []gin.HandlerFunc{core.CsrfExemptMiddleware(s)},
-			NameSpace:             "7",
+			HandlerFuncs:          []gin.HandlerFunc{au.ForgotPassword},
+			DecoratorHandlerFuncs: []gin.HandlerFunc{csrf_exempt},
+			NameSpace:             "forgot",
 		},
 		{
 			Method:                "POST",
 			Path:                  "/reset",
-			HandlerFunc:           au.ResetPassword,
-			DecoratorHandlerFuncs: []gin.HandlerFunc{core.CsrfExemptMiddleware(s)},
-			NameSpace:             "8",
+			HandlerFuncs:          []gin.HandlerFunc{au.ResetPassword},
+			DecoratorHandlerFuncs: []gin.HandlerFunc{csrf_exempt},
+			NameSpace:             "reset",
 		},
 	}
 	return routes

@@ -9,6 +9,7 @@ type CatalogService struct {
 	server          *core.Server
 	colorManager    *ColorManager
 	categoryManager *CategoryManager
+	tshirtManager   *TShirtManager
 }
 
 func NewCatalogService(server *core.Server) *CatalogService {
@@ -16,6 +17,7 @@ func NewCatalogService(server *core.Server) *CatalogService {
 		server:          server,
 		colorManager:    NewColorManager(server),
 		categoryManager: NewCategoryManager(server),
+		tshirtManager:   NewTShirtManager(server),
 	}
 }
 
@@ -39,4 +41,15 @@ func (s *CatalogService) GetCategories() ([]Category, error) {
 		}
 	}
 	return categories, nil
+}
+
+func (s *CatalogService) GetGarments() ([]Garment, error) {
+	tshirts, err := s.tshirtManager.GetAll()
+	if err != nil {
+		return nil, &core.ServiceError{
+			Code:    http.StatusInternalServerError,
+			Message: err.Error(),
+		}
+	}
+	return tshirts, nil
 }

@@ -46,7 +46,7 @@ func (ctrl *CoreController) GetToken(c *gin.Context) {
 	})
 }
 
-func (ctrl *CoreController) Get(ctx *gin.Context) {
-	user := ctx.Keys["user"]
-	ctx.JSON(200, gin.H{"status": "ok", "user": user})
+func (ctrl *CoreController) Get(c *gin.Context) {
+	user := c.Keys["user"]
+	c.JSON(200, gin.H{"status": "ok", "user": user})
 }

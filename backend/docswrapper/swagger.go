@@ -27,6 +27,17 @@ func LoginHandler(c *gin.Context) {}
 // @Router /api/v1/auth/register [post]
 func RegisterHandler(c *gin.Context) {}
 
+// RegisterConfirmHandler godoc
+// @Summary Confirm user registration
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Param input body auth.RegisterConfirmRequest true "Confirmation token"
+// @Success 201 {object} core.APIResponse{data=map[string]string} "User successfully registered"
+// @Failure 400 {object} core.APIResponse{error=core.APIError} "Bad request"
+// @Router /api/v1/auth/register-confirm [post]
+func RegisterConfirmHandler(c *gin.Context) {}
+
 // ForgotPasswordHandler godoc
 // @Summary Request password reset
 // @Tags auth
@@ -74,3 +85,12 @@ func ColorsHandler(c *gin.Context) {}
 // @Failure 400 {object} core.APIResponse{error=core.APIError} "Bad request"
 // @Router /api/v1/catalog/categories [get]
 func CategoriesHandler(c *gin.Context) {}
+
+// GarmentsHandler godoc
+// @Summary Get garments
+// @Tags catalog
+// @Produce json
+// @Success 200 {object} core.APIResponse{data=[]catalog.GarmentResponse} "Successfully get garments"
+// @Failure 400 {object} core.APIResponse{error=core.APIError} "Bad request"
+// @Router /api/v1/catalog/garments [get]
+func GarmentsHandler(c *gin.Context) {}

@@ -6,6 +6,7 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"html/template"
 	"io"
@@ -15,6 +16,7 @@ import (
 	"github.com/dchest/uniuri"
 	"github.com/fernet/fernet-go"
 	"github.com/gin-gonic/gin"
+	"github.com/gin-gonic/gin/binding"
 	"github.com/go-playground/validator/v10"
 )
 
@@ -34,7 +36,11 @@ func GenerateCSRFToken(secret string) (string, error) {
 func ParseValidationError(err error) map[string]string {
 	fieldErrors := make(map[string]string)
 	for _, fe := range err.(validator.ValidationErrors) {
-		fieldErrors[fe.Field()] = fe.ActualTag()
+		if fe.Param() != "" {
+			fieldErrors[fe.Field()] = fmt.Sprintf("%v=%v", fe.ActualTag(), fe.Param())
+		} else {
+			fieldErrors[fe.Field()] = fmt.Sprintf("%v", fe.ActualTag())
+		}
 	}
 	return fieldErrors
 }
@@ -150,4 +156,13 @@ func RenderTextTemplate(filename string, data any) (string, error) {
 	}
 
 	return buf.String(), nil
+}
+
+func ValidateStruct(obj interface{}) error {
+	if v, ok := binding.Validator.Engine().(*validator.Validate); ok {
+		if err := v.Struct(obj); err != nil {
+			return err
+		}
+	}
+	return errors.New("validator not initialized")
 }
