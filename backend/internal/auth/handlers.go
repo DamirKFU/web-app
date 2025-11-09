@@ -57,9 +57,21 @@ func (ctrl *AuthController) Login(c *gin.Context) {
 		return
 	}
 
+	token, err := core.SetCsrfToken(
+		c,
+		ctrl.server.Cfg.SecretKey,
+		ctrl.server.Cfg.CSRF.Cookie,
+	)
+	if err != nil {
+		core.Fail(c, http.StatusInternalServerError, err.Error(), nil)
+	}
+
 	c.SetCookie(ctrl.server.Cfg.JWT.AccessCookie, accessToken, int(ctrl.server.Cfg.JWT.AccessExpiresIn), "/", "", false, true)
 	c.SetCookie(ctrl.server.Cfg.JWT.RefreshCookie, refreshToken, int(ctrl.server.Cfg.JWT.RefreshExpiresIn), "/", "", false, true)
-	core.Success(c, gin.H{"message": "logged in"})
+	core.Success(c, gin.H{
+		"message":                   "logged in",
+		ctrl.server.Cfg.CSRF.Cookie: token,
+	})
 }
 
 func (ctrl *AuthController) RefreshToken(c *gin.Context) {
@@ -92,6 +104,12 @@ func (ctrl *AuthController) RefreshToken(c *gin.Context) {
 		"",
 		false,
 		true,
+	)
+
+	core.SetCsrfToken(
+		c,
+		ctrl.server.Cfg.SecretKey,
+		ctrl.server.Cfg.CSRF.Cookie,
 	)
 
 	core.Success(c, gin.H{"message": "access token refreshed"})

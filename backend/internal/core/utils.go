@@ -88,6 +88,32 @@ func inArray(arr []string, value string) bool {
 	return inarr
 }
 
+func SetCsrfToken(c *gin.Context, secretKey, csrfCookieName string) (string, error) {
+	cookieToken, err := c.Cookie(csrfCookieName)
+	var token string
+
+	if err != nil || cookieToken == "" {
+		token, err = GenerateCSRFToken(secretKey)
+		if err != nil {
+			return "", errors.New("failed to generate CSRF token")
+		}
+
+		c.SetCookie(
+			csrfCookieName,
+			token,
+			0,
+			"/",
+			"",
+			false,
+			true,
+		)
+	} else {
+		token = cookieToken
+	}
+
+	return token, nil
+}
+
 func CheckCsrfExempt(c *gin.Context) (exempt bool, valid bool) {
 	value, exists := c.Get("csrf_exempt")
 	if !exists {
@@ -158,7 +184,7 @@ func RenderTextTemplate(filename string, data any) (string, error) {
 	return buf.String(), nil
 }
 
-func ValidateStruct(obj interface{}) error {
+func ValidateStruct(obj any) error {
 	if v, ok := binding.Validator.Engine().(*validator.Validate); ok {
 		if err := v.Struct(obj); err != nil {
 			return err
