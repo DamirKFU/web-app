@@ -88,7 +88,7 @@ func inArray(arr []string, value string) bool {
 	return inarr
 }
 
-func SetCsrfToken(c *gin.Context, secretKey, csrfCookieName string) (string, error) {
+func SetCsrfToken(c *gin.Context, secretKey, csrfCookieName string, maxAge int) (string, error) {
 	cookieToken, err := c.Cookie(csrfCookieName)
 	var token string
 
@@ -101,7 +101,7 @@ func SetCsrfToken(c *gin.Context, secretKey, csrfCookieName string) (string, err
 		c.SetCookie(
 			csrfCookieName,
 			token,
-			0,
+			maxAge,
 			"/",
 			"",
 			false,

@@ -61,6 +61,7 @@ func (ctrl *AuthController) Login(c *gin.Context) {
 		c,
 		ctrl.server.Cfg.SecretKey,
 		ctrl.server.Cfg.CSRF.Cookie,
+		int(ctrl.server.Cfg.JWT.RefreshExpiresIn),
 	)
 	if err != nil {
 		core.Fail(c, http.StatusInternalServerError, err.Error(), nil)
@@ -110,6 +111,7 @@ func (ctrl *AuthController) RefreshToken(c *gin.Context) {
 		c,
 		ctrl.server.Cfg.SecretKey,
 		ctrl.server.Cfg.CSRF.Cookie,
+		int(ctrl.server.Cfg.JWT.RefreshExpiresIn),
 	)
 
 	core.Success(c, gin.H{"message": "access token refreshed"})
