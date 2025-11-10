@@ -74,7 +74,7 @@ func HandleValidationError(c *gin.Context, err error) bool {
 	return true
 }
 
-func HandleError(c *gin.Context, err error) bool {
+func HandleServerError(c *gin.Context, err error) bool {
 	if err == nil {
 		return false
 	}
@@ -82,10 +82,11 @@ func HandleError(c *gin.Context, err error) bool {
 	switch e := err.(type) {
 
 	case validator.ValidationErrors:
-		return HandleValidationError(c, err)
+		fields := ParseValidationError(err)
+		Fail(c, http.StatusInternalServerError, "validation error", fields)
 
 	case *ServiceError:
-		HandleServiceError(c, err)
+		Fail(c, http.StatusInternalServerError, e.Message, e.Fields)
 
 	default:
 		Fail(c, http.StatusInternalServerError, e.Error(), nil)

@@ -25,7 +25,7 @@ func RegisterValidators(s *core.Server) {
 }
 
 func ValidateColorHex(fl validator.FieldLevel) bool {
-	var colorRegex = regexp.MustCompile(`^#([A-Fa-f0-9]{6})$`)
+	var colorRegex = regexp.MustCompile(`^#([a-f0-9]{6})$`)
 
 	return colorRegex.MatchString(fl.Field().String())
 }
