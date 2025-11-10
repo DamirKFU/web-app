@@ -53,7 +53,42 @@ func HandleServiceError(c *gin.Context, err error) bool {
 	if se, ok := err.(*ServiceError); ok {
 		Fail(c, se.Code, se.Message, se.Fields)
 	} else {
-		Fail(c, http.StatusInternalServerError, "internal server error", nil)
+		Fail(c, http.StatusInternalServerError, "convert type error", nil)
+	}
+
+	return true
+}
+
+func HandleValidationError(c *gin.Context, err error) bool {
+	if err == nil {
+		return false
+	}
+
+	if _, ok := err.(*validator.ValidationErrors); ok {
+		fields := ParseValidationError(err)
+		Fail(c, http.StatusBadRequest, "validation error", fields)
+	} else {
+		Fail(c, http.StatusInternalServerError, "convert type error", nil)
+	}
+
+	return true
+}
+
+func HandleError(c *gin.Context, err error) bool {
+	if err == nil {
+		return false
+	}
+
+	switch e := err.(type) {
+
+	case validator.ValidationErrors:
+		return HandleValidationError(c, err)
+
+	case *ServiceError:
+		HandleServiceError(c, err)
+
+	default:
+		Fail(c, http.StatusInternalServerError, e.Error(), nil)
 	}
 
 	return true
@@ -189,6 +224,7 @@ func ValidateStruct(obj any) error {
 		if err := v.Struct(obj); err != nil {
 			return err
 		}
+		return nil
 	}
-	return errors.New("validator not initialized")
+	panic("validator not initialized")
 }

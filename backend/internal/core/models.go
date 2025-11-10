@@ -10,7 +10,7 @@ type AbstractModel struct {
 
 type AbstractNameModel struct {
 	AbstractModel
-	Name string `gorm:"type:varchar(150);unique;not null" json:"name"`
+	Name string `gorm:"type:varchar(150);unique;not null" binding:"AbstractName"`
 }
 
 func (a AbstractNameModel) String() string {

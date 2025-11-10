@@ -37,9 +37,9 @@ func CreateApp(cfg config.Config) *core.Server {
 
 	base_group := s.Eng.Group("api/v1/")
 
+	core.RegisterApp(base_group, s)
 	users.RegisterApp(base_group, s)
 	auth.RegisterApp(base_group, s)
-	core.RegisterApp(base_group, s)
 	catalog.RegisterApp(base_group, s)
 
 	s.Eng.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))

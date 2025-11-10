@@ -7,6 +7,6 @@ import (
 
 type Session struct {
 	core.AbstractModel
-	UserID uint       `gorm:"not null;index"`
+	UserID uint       `gorm:"not null;index" binding:"SessionsUserID"`
 	User   users.User `gorm:"constraint:OnDelete:CASCADE;"`
 }

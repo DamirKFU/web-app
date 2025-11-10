@@ -13,18 +13,14 @@ type User struct {
 	core.AbstractModel
 	Username       string `gorm:"type:varchar(42);unique;not null" binding:"UsersUsername"`
 	Email          string `gorm:"type:varchar(128);unique;not null" binding:"UsersEmail"`
-	NormalizeEmail string `gorm:"type:varchar(128);unique;not null"`
+	NormalizeEmail string `gorm:"type:varchar(128);unique;not null" binding:"UsersEmail"`
 	Password       string `gorm:"type:varchar(128);not null" binding:"UsersPassword"`
 	IsSuperUser    bool   `gorm:"default:false;not null"`
 }
 
 func (u *User) BeforeSave(tx *gorm.DB) (err error) {
-	return core.ValidateStruct(u)
-}
-
-func (u *User) BeforeCreate(tx *gorm.DB) (err error) {
 	u.NormalizeEmail = NormalizeEmail(u.Email)
-	return nil
+	return core.ValidateStruct(u)
 }
 
 func (u *User) IsValid() error {

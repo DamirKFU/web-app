@@ -21,8 +21,8 @@ func NewAuthController(server *core.Server) *AuthController {
 
 func (ctrl *AuthController) Register(c *gin.Context) {
 	var body RegisterRequest
-	if err := c.ShouldBindJSON(&body); err != nil {
-		core.Fail(c, http.StatusBadRequest, "validation failed", core.ParseValidationError(err))
+	err := c.ShouldBindJSON(&body)
+	if core.HandleValidationError(c, err) {
 		return
 	}
 
@@ -34,8 +34,8 @@ func (ctrl *AuthController) Register(c *gin.Context) {
 
 func (ctrl *AuthController) RegisterConfirm(c *gin.Context) {
 	var body RegisterConfirmRequest
-	if err := c.ShouldBindJSON(&body); err != nil {
-		core.Fail(c, http.StatusBadRequest, "validation failed", core.ParseValidationError(err))
+	err := c.ShouldBindJSON(&body)
+	if core.HandleValidationError(c, err) {
 		return
 	}
 
@@ -47,8 +47,8 @@ func (ctrl *AuthController) RegisterConfirm(c *gin.Context) {
 
 func (ctrl *AuthController) Login(c *gin.Context) {
 	var body LoginRequest
-	if err := c.ShouldBindJSON(&body); err != nil {
-		core.Fail(c, http.StatusBadRequest, "validation failed", core.ParseValidationError(err))
+	err := c.ShouldBindJSON(&body)
+	if core.HandleValidationError(c, err) {
 		return
 	}
 
@@ -129,8 +129,8 @@ func (ctrl *AuthController) Logout(c *gin.Context) {
 
 func (ctrl *AuthController) ForgotPassword(c *gin.Context) {
 	var body ForgotPasswordRequest
-	if err := c.ShouldBindJSON(&body); err != nil {
-		core.Fail(c, http.StatusBadRequest, "validation failed", core.ParseValidationError(err))
+	err := c.ShouldBindJSON(&body)
+	if core.HandleValidationError(c, err) {
 		return
 	}
 
@@ -143,8 +143,8 @@ func (ctrl *AuthController) ForgotPassword(c *gin.Context) {
 
 func (ctrl *AuthController) ResetPassword(c *gin.Context) {
 	var body ResetPasswordRequest
-	if err := c.ShouldBindJSON(&body); err != nil {
-		core.Fail(c, http.StatusBadRequest, "validation failed", core.ParseValidationError(err))
+	err := c.ShouldBindJSON(&body)
+	if core.HandleValidationError(c, err) {
 		return
 	}
 
