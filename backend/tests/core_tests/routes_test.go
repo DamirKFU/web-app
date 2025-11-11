@@ -10,7 +10,7 @@ import (
 )
 
 func TestCoreServerInitialization(t *testing.T) {
-	server := tests.NewTestServerWithTx(t)
+	server := tests.GetTestServerWithTx(t)
 
 	assert.NotNil(t, server, "server should not be nil")
 	assert.Equal(t, "testdb", server.Cfg.DB.Name, "expected test database name")

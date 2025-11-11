@@ -55,7 +55,7 @@ func CreateTestDB(cfg *config.Config) string {
 	return testDBName
 }
 
-func NewTestServerWithTx(t *testing.T) *core.Server {
+func GetTestServerWithTx(t *testing.T) *core.Server {
 	server := GetTestServer()
 
 	tx := server.DB.Begin()
@@ -66,6 +66,8 @@ func NewTestServerWithTx(t *testing.T) *core.Server {
 	t.Cleanup(func() {
 		tx.Rollback()
 	})
+
+	server.DB = tx
 
 	return server
 }
