@@ -66,11 +66,11 @@ type Config struct {
 	LimitBodySize         int64         `mapstructure:"limit_body_size"`
 }
 
-func Load() Config {
+func Load(config_path string) Config {
 	v := viper.New()
 	v.SetConfigType("yaml")
 	v.SetConfigName("config")
-	v.AddConfigPath(".")
+	v.AddConfigPath(config_path)
 	v.AutomaticEnv()
 
 	v.SetDefault("http.addr", ":8080")

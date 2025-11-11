@@ -3,6 +3,7 @@ package core
 import (
 	"log"
 	"net/http"
+	"strings"
 
 	"app/config"
 
@@ -46,11 +47,31 @@ func (s *Server) RegisterRoutes(group *gin.RouterGroup, routes []Route) {
 		orderHandlers := append(route.DecoratorHandlerFuncs, s.Mdls...)
 		orderHandlers = append(orderHandlers, route.HandlerFuncs...)
 		group.Handle(route.Method, route.Path, orderHandlers...)
+		route.FullPath = group.BasePath() + route.Path
 		if _, exists := s.RoutesMap[route.NameSpace]; exists {
 			log.Printf("[WARN] Route namespace '%s' is repeated. Previous handler will be overwritten by the new one.\n", route.NameSpace)
 		}
 		s.RoutesMap[route.NameSpace] = route
 	}
+}
+
+func (s *Server) Reverse(nameSpace string, params map[string]string) string {
+	route, ok := s.RoutesMap[nameSpace]
+	if !ok {
+		log.Panicf("reverse %s not found", nameSpace)
+	}
+
+	fullPath := route.FullPath
+
+	for key, value := range params {
+		fullPath = strings.ReplaceAll(fullPath, ":"+key, value)
+	}
+
+	if strings.Contains(fullPath, ":") {
+		log.Panicf("reverse %s missing params, unresolved path: %s", nameSpace, fullPath)
+	}
+
+	return fullPath
 }
 
 func (s *Server) RegisterMiddlewares(mdls []gin.HandlerFunc) {

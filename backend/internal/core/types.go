@@ -28,6 +28,7 @@ type Route struct {
 	HandlerFuncs          []gin.HandlerFunc
 	NameSpace             string
 	DecoratorHandlerFuncs []gin.HandlerFunc
+	FullPath              string
 }
 
 type MiddlewareGroup struct {

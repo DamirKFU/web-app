@@ -12,7 +12,7 @@ func GetRoutes(s *Server) []Route {
 			Path:                  "/healf",
 			HandlerFuncs:          []gin.HandlerFunc{cr.Get},
 			DecoratorHandlerFuncs: []gin.HandlerFunc{},
-			NameSpace:             "1",
+			NameSpace:             "healf",
 		},
 	}
 
