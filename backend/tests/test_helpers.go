@@ -8,9 +8,16 @@ import (
 	"fmt"
 	"log"
 	"sync"
+	"testing"
 
 	_ "github.com/lib/pq"
+	"gorm.io/gorm"
 )
+
+type TestServer struct {
+	Server *core.Server
+	TX     *gorm.DB
+}
 
 var (
 	testServer *core.Server
@@ -46,6 +53,21 @@ func CreateTestDB(cfg *config.Config) string {
 	}
 
 	return testDBName
+}
+
+func NewTestServerWithTx(t *testing.T) *core.Server {
+	server := GetTestServer()
+
+	tx := server.DB.Begin()
+	if tx.Error != nil {
+		t.Fatalf("failed to begin transaction: %v", tx.Error)
+	}
+
+	t.Cleanup(func() {
+		tx.Rollback()
+	})
+
+	return server
 }
 
 func GetTestServer() *core.Server {
