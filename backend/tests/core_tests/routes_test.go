@@ -9,8 +9,12 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestMain(m *testing.M) {
+	tests.TestMain(m)
+}
+
 func TestCoreServerInitialization(t *testing.T) {
-	server := tests.GetTestServerWithTx(t)
+	server, _ := tests.GetTestServerWithTx(t)
 
 	assert.NotNil(t, server, "server should not be nil")
 	assert.Equal(t, "testdb", server.Cfg.DB.Name, "expected test database name")

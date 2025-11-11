@@ -7,7 +7,7 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
-	"sync"
+	"os"
 	"testing"
 
 	_ "github.com/lib/pq"
@@ -21,7 +21,6 @@ type TestServer struct {
 
 var (
 	testServer *core.Server
-	once       sync.Once
 )
 
 func CreateTestDB(cfg *config.Config) string {
@@ -55,10 +54,29 @@ func CreateTestDB(cfg *config.Config) string {
 	return testDBName
 }
 
-func GetTestServerWithTx(t *testing.T) *core.Server {
-	server := GetTestServer()
+func DropTestDB(cfg *config.Config, dbName string) {
+	mainConnStr := fmt.Sprintf(
+		"host=%s port=%s user=%s password=%s dbname=postgres sslmode=disable",
+		cfg.DB.Host, cfg.DB.Port, cfg.DB.User, cfg.DB.Password,
+	)
+	db, err := sql.Open("postgres", mainConnStr)
+	if err != nil {
+		log.Fatalf("cannot connect to postgres to drop db: %v", err)
+	}
+	defer db.Close()
 
-	tx := server.DB.Begin()
+	_, err = db.Exec(fmt.Sprintf("DROP DATABASE IF EXISTS %s;", dbName))
+	if err != nil {
+		log.Fatalf("cannot drop test database %s: %v", dbName, err)
+	}
+
+	log.Printf("✅ Test database %s dropped", dbName)
+}
+
+func GetTestServerWithTx(t *testing.T) (*core.Server, *gorm.DB) {
+	original := GetTestServer()
+
+	tx := original.DB.Begin()
 	if tx.Error != nil {
 		t.Fatalf("failed to begin transaction: %v", tx.Error)
 	}
@@ -67,16 +85,32 @@ func GetTestServerWithTx(t *testing.T) *core.Server {
 		tx.Rollback()
 	})
 
-	server.DB = tx
+	serverCopy := *original
+	serverCopy.DB = tx
 
-	return server
+	return &serverCopy, tx
+}
+
+func TestMain(m *testing.M) {
+
+	cfg := config.Load("../../")
+	cfg.DB.Name = CreateTestDB(&cfg)
+	testServer = internal.CreateApp(cfg)
+
+	testDBName := cfg.DB.Name
+
+	code := m.Run()
+	sqlDB, err := testServer.DB.DB()
+	if err != nil {
+		log.Fatalf("cannot get sql.DB from gorm.DB: %v", err)
+	}
+	sqlDB.Close()
+
+	DropTestDB(&cfg, testDBName)
+
+	os.Exit(code)
 }
 
 func GetTestServer() *core.Server {
-	once.Do(func() {
-		cfg := config.Load("../../")
-		cfg.DB.Name = CreateTestDB(&cfg)
-		testServer = internal.CreateApp(cfg)
-	})
 	return testServer
 }
