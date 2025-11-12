@@ -14,7 +14,7 @@ func TestMain(m *testing.M) {
 }
 
 func TestCoreServerInitialization(t *testing.T) {
-	server, _ := tests.GetTestServerWithTx(t)
+	server := tests.GetTestServerWithTx(t)
 
 	assert.NotNil(t, server, "server should not be nil")
 	assert.Equal(t, "testdb", server.Cfg.DB.Name, "expected test database name")

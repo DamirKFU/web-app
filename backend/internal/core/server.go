@@ -10,6 +10,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
 	"github.com/go-playground/validator/v10"
+	"gorm.io/gorm"
 )
 
 func NewServer(cfg config.Config) *Server {
@@ -72,6 +73,15 @@ func (s *Server) Reverse(nameSpace string, params map[string]string) string {
 	}
 
 	return fullPath
+}
+
+func (s *Server) GetDB(c *gin.Context) *gorm.DB {
+	if db, exists := c.Get("db"); exists {
+		if tx, ok := db.(*gorm.DB); ok {
+			return tx
+		}
+	}
+	return s.DB
 }
 
 func (s *Server) RegisterMiddlewares(mdls []gin.HandlerFunc) {

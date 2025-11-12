@@ -73,22 +73,23 @@ func DropTestDB(cfg *config.Config, dbName string) {
 	log.Printf("✅ Test database %s dropped", dbName)
 }
 
-func GetTestServerWithTx(t *testing.T) (*core.Server, *gorm.DB) {
-	original := GetTestServer()
+func GetTestServerWithTx(t *testing.T) *core.Server {
+	server := GetTestServer()
+	originalDB := server.DB
 
-	tx := original.DB.Begin()
+	tx := originalDB.Begin()
 	if tx.Error != nil {
 		t.Fatalf("failed to begin transaction: %v", tx.Error)
 	}
 
+	server.DB = tx
+
 	t.Cleanup(func() {
 		tx.Rollback()
+		server.DB = originalDB
 	})
 
-	serverCopy := *original
-	serverCopy.DB = tx
-
-	return &serverCopy, tx
+	return server
 }
 
 func TestMain(m *testing.M) {

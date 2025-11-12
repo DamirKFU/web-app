@@ -113,6 +113,45 @@ func LimitRequestBodySizeMiddleware(server *Server) gin.HandlerFunc {
 	}
 }
 
+func TransactionMiddleware(server *Server) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		tx := server.DB.Begin()
+		if tx.Error != nil {
+			Fail(c, http.StatusInternalServerError, "Failed to start transaction", nil)
+			c.Abort()
+			return
+		}
+
+		c.Set("db", tx)
+
+		defer func() {
+			if r := recover(); r != nil {
+				tx.Rollback()
+				panic(r)
+			}
+		}()
+
+		c.Next()
+
+		if forceRollback, exists := c.Get("force_transaction_rollback"); exists {
+			if rollback, ok := forceRollback.(bool); ok && rollback {
+				tx.Rollback()
+				return
+			}
+		}
+
+		status := c.Writer.Status()
+		if status >= http.StatusBadRequest {
+			tx.Rollback()
+		} else {
+			if err := tx.Commit().Error; err != nil {
+				tx.Rollback()
+				Fail(c, http.StatusInternalServerError, "Failed transaction commit", nil)
+			}
+		}
+	}
+}
+
 func RateLimiterMiddleware(server *Server, key string, limit int, slidingWindow time.Duration) gin.HandlerFunc {
 	redisClient := server.RedisServer.RDB0
 	slidingWindow = 60 * time.Second
