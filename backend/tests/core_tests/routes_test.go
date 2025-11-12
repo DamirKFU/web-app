@@ -14,13 +14,23 @@ func TestMain(m *testing.M) {
 }
 
 func TestCoreServerInitialization(t *testing.T) {
-	server := tests.GetTestServerWithTx(t)
+	server, _ := tests.GetTestServerWithTx(t)
 
 	assert.NotNil(t, server, "server should not be nil")
 	assert.Equal(t, "testdb", server.Cfg.DB.Name, "expected test database name")
 
 	req := httptest.NewRequest(http.MethodGet, server.Reverse("healf", nil), nil)
 	resp := httptest.NewRecorder()
+	server.Eng.ServeHTTP(resp, req)
+
+	assert.Equal(t, http.StatusOK, resp.Code, "expected 200 OK from /healf")
+	assert.Contains(t, resp.Body.String(), "ok", "response should contain 'ok'")
+
+	server.Eng.ServeHTTP(resp, req)
+
+	assert.Equal(t, http.StatusOK, resp.Code, "expected 200 OK from /healf")
+	assert.Contains(t, resp.Body.String(), "ok", "response should contain 'ok'")
+
 	server.Eng.ServeHTTP(resp, req)
 
 	assert.Equal(t, http.StatusOK, resp.Code, "expected 200 OK from /healf")

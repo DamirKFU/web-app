@@ -1,6 +1,7 @@
 package core
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -10,6 +11,7 @@ import (
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/redis/go-redis/v9"
+	"gorm.io/gorm"
 )
 
 func CorsMiddleware(server *Server) gin.HandlerFunc {
@@ -115,40 +117,17 @@ func LimitRequestBodySizeMiddleware(server *Server) gin.HandlerFunc {
 
 func TransactionMiddleware(server *Server) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		tx := server.DB.Begin()
-		if tx.Error != nil {
-			Fail(c, http.StatusInternalServerError, "Failed to start transaction", nil)
-			c.Abort()
-			return
-		}
+		_ = server.DB.Transaction(func(tx *gorm.DB) error {
+			c.Set("db", tx)
 
-		c.Set("db", tx)
+			c.Next()
 
-		defer func() {
-			if r := recover(); r != nil {
-				tx.Rollback()
-				panic(r)
+			if c.Writer.Status() >= http.StatusInternalServerError {
+				return errors.New("rollback")
 			}
-		}()
 
-		c.Next()
-
-		if forceRollback, exists := c.Get("force_transaction_rollback"); exists {
-			if rollback, ok := forceRollback.(bool); ok && rollback {
-				tx.Rollback()
-				return
-			}
-		}
-
-		status := c.Writer.Status()
-		if status >= http.StatusBadRequest {
-			tx.Rollback()
-		} else {
-			if err := tx.Commit().Error; err != nil {
-				tx.Rollback()
-				Fail(c, http.StatusInternalServerError, "Failed transaction commit", nil)
-			}
-		}
+			return nil
+		})
 	}
 }
 

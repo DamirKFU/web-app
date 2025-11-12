@@ -73,7 +73,7 @@ func DropTestDB(cfg *config.Config, dbName string) {
 	log.Printf("✅ Test database %s dropped", dbName)
 }
 
-func GetTestServerWithTx(t *testing.T) *core.Server {
+func GetTestServerWithTx(t *testing.T) (*core.Server, *gorm.DB) {
 	server := GetTestServer()
 	originalDB := server.DB
 
@@ -89,7 +89,7 @@ func GetTestServerWithTx(t *testing.T) *core.Server {
 		server.DB = originalDB
 	})
 
-	return server
+	return server, tx
 }
 
 func TestMain(m *testing.M) {
