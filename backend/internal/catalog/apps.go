@@ -2,7 +2,6 @@ package catalog
 
 import (
 	"app/internal/core"
-	"log"
 
 	"github.com/gin-gonic/gin"
 )
@@ -13,12 +12,10 @@ func RegisterApp(g *gin.RouterGroup, s *core.Server) {
 		&Category{},
 		&Garment{},
 	}
-	if err := s.DB.AutoMigrate(models...); err != nil {
-		log.Fatalf("failed to migrate database: %v", err)
-	}
 	prefix := "catalog"
 	group := g.Group(prefix)
 	routes := GetRoutes(s)
-	s.RegisterRoutes(group, routes)
 	RegisterValidators(s)
+	s.RegisterRoutes(group, routes)
+	s.RegisterModels(models...)
 }

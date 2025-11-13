@@ -8,8 +8,10 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 	"testing"
 
+	"github.com/gin-gonic/gin"
 	_ "github.com/lib/pq"
 	"gorm.io/gorm"
 )
@@ -73,31 +75,40 @@ func DropTestDB(cfg *config.Config, dbName string) {
 	log.Printf("✅ Test database %s dropped", dbName)
 }
 
-func GetTestServerWithTx(t *testing.T) (*core.Server, *gorm.DB) {
-	server := GetTestServer()
-	originalDB := server.DB
+func CleanDatabase(t *testing.T) {
+	t.Helper()
 
-	tx := originalDB.Begin()
-	if tx.Error != nil {
-		t.Fatalf("failed to begin transaction: %v", tx.Error)
-	}
-
-	server.DB = tx
+	srv := GetTestServer()
+	db := srv.DB
+	models := srv.GetModels()
 
 	t.Cleanup(func() {
-		tx.Rollback()
-		server.DB = originalDB
-	})
+		var tableNames []string
 
-	return server, tx
+		for _, m := range models {
+			stmt := &gorm.Statement{DB: db}
+			if err := stmt.Parse(m); err != nil {
+				t.Fatalf("failed to parse model %T: %v", m, err)
+			}
+			tableNames = append(tableNames, stmt.Table)
+		}
+
+		if len(tableNames) == 0 {
+			return
+		}
+
+		query := fmt.Sprintf("TRUNCATE TABLE %s RESTART IDENTITY CASCADE", strings.Join(tableNames, ", "))
+		if err := db.Exec(query).Error; err != nil {
+			t.Fatalf("failed to truncate tables: %v", err)
+		}
+	})
 }
 
 func TestMain(m *testing.M) {
-
+	gin.SetMode(gin.TestMode)
 	cfg := config.Load("../../")
 	cfg.DB.Name = CreateTestDB(&cfg)
 	testServer = internal.CreateApp(cfg)
-
 	testDBName := cfg.DB.Name
 
 	code := m.Run()

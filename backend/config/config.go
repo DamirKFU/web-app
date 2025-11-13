@@ -1,7 +1,6 @@
 package config
 
 import (
-	"encoding/json"
 	"log"
 	"time"
 
@@ -64,6 +63,8 @@ type Config struct {
 	PayloadTokenExpiresIn time.Duration `mapstructure:"payload_token_expires_in"`
 	FrontURL              string        `mapstructure:"front_url"`
 	LimitBodySize         int64         `mapstructure:"limit_body_size"`
+	TestDBName            string        `mapstructure:"test_db_name"`
+	Debug                 bool          `mapstructure:"debug"`
 }
 
 func Load(config_path string) Config {
@@ -84,6 +85,8 @@ func Load(config_path string) Config {
 
 	v.SetDefault("payload_token_expires_in", time.Hour)
 	v.SetDefault("limit_body_size", 1024)
+	v.SetDefault("test_db_name", "test_db")
+	v.SetDefault("debug", true)
 
 	v.SetDefault("redis.addr", "localhost:6379")
 
@@ -102,7 +105,9 @@ func Load(config_path string) Config {
 		log.Fatalf("JWT SECRET KEY IS EMPTY")
 	}
 
-	data, _ := json.MarshalIndent(cfg, "", "  ")
-	log.Println(string(data))
+	if cfg.DB.Name == cfg.TestDBName {
+		log.Fatalf("DB.Name must not be equal to TestDBName")
+	}
+
 	return cfg
 }

@@ -7,7 +7,7 @@ services:
     environment:
       POSTGRES_USER: adminer
       POSTGRES_PASSWORD: adminerpass
-      POSTGRES_DB: testdb
+      POSTGRES_DB: project
     ports:
       - "5432:5432"
 

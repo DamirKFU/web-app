@@ -20,6 +20,7 @@ type Server struct {
 	RedisServer *RedisServer
 	Email       *EmailSMTPEngine
 	Mdls        []gin.HandlerFunc
+	Models      []any
 }
 
 type Route struct {

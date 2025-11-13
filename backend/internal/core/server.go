@@ -22,6 +22,7 @@ func NewServer(cfg config.Config) *Server {
 		RedisServer: NewRedisServer(cfg),
 		Mdls:        make([]gin.HandlerFunc, 0),
 		Email:       NewEmailSMTPEngine(cfg),
+		Models:      make([]any, 0),
 	}
 }
 
@@ -82,6 +83,17 @@ func (s *Server) GetDB(c *gin.Context) *gorm.DB {
 		}
 	}
 	return s.DB
+}
+
+func (s *Server) RegisterModels(models ...any) {
+	s.Models = append(s.Models, models...)
+	if err := s.DB.AutoMigrate(models...); err != nil {
+		log.Fatalf("failed to migrate database: %v", err)
+	}
+}
+
+func (s *Server) GetModels() []any {
+	return s.Models
 }
 
 func (s *Server) RegisterMiddlewares(mdls []gin.HandlerFunc) {

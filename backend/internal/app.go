@@ -7,6 +7,8 @@ import (
 	"app/internal/catalog"
 	"app/internal/core"
 	"app/internal/users"
+	"encoding/json"
+	"log"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -15,7 +17,13 @@ import (
 )
 
 func CreateApp(cfg config.Config) *core.Server {
-
+	if gin.Mode() != gin.TestMode && !cfg.Debug {
+		gin.SetMode(gin.ReleaseMode)
+	}
+	if cfg.Debug {
+		data, _ := json.MarshalIndent(cfg, "", "  ")
+		log.Println(string(data))
+	}
 	s := core.NewServer(cfg)
 
 	catalog.RegisterValidators(s)
