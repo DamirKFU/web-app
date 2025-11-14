@@ -21,7 +21,8 @@ func GenerateTokens(userID, sessionID uint, secretKey string, accessExpiresIn ti
 	}
 
 	refreshClaims := &Claims{
-		UserID: userID,
+		UserID:    userID,
+		SessionID: sessionID,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(refreshExpiresIn)),
 		},

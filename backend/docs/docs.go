@@ -199,6 +199,58 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/v1/auth/refresh": {
+            "post": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Refresh auth tokens",
+                "responses": {
+                    "200": {
+                        "description": "Successfully refreshed tokens",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/core.APIResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "additionalProperties": {
+                                                "type": "string"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/core.APIResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "error": {
+                                            "$ref": "#/definitions/core.APIError"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/auth/register": {
             "post": {
                 "consumes": [
@@ -557,9 +609,6 @@ const docTemplate = `{
     "definitions": {
         "auth.ForgotPasswordRequest": {
             "type": "object",
-            "required": [
-                "email"
-            ],
             "properties": {
                 "email": {
                     "type": "string"
@@ -594,41 +643,29 @@ const docTemplate = `{
         },
         "auth.RegisterRequest": {
             "type": "object",
-            "required": [
-                "email",
-                "password",
-                "repeat_password",
-                "username"
-            ],
             "properties": {
                 "email": {
                     "type": "string"
                 },
                 "password": {
-                    "type": "string",
-                    "minLength": 6
+                    "type": "string"
                 },
                 "repeat_password": {
                     "type": "string"
                 },
                 "username": {
-                    "type": "string",
-                    "maxLength": 42,
-                    "minLength": 3
+                    "type": "string"
                 }
             }
         },
         "auth.ResetPasswordRequest": {
             "type": "object",
             "required": [
-                "password",
-                "repeat_password",
                 "token"
             ],
             "properties": {
                 "password": {
-                    "type": "string",
-                    "minLength": 6
+                    "type": "string"
                 },
                 "repeat_password": {
                     "type": "string"

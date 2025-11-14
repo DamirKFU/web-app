@@ -38,6 +38,15 @@ func RegisterHandler(c *gin.Context) {}
 // @Router /api/v1/auth/register-confirm [post]
 func RegisterConfirmHandler(c *gin.Context) {}
 
+// RefreshHandler godoc
+// @Summary Refresh auth tokens
+// @Tags auth
+// @Produce json
+// @Success 200 {object} core.APIResponse{data=map[string]string} "Successfully refreshed tokens"
+// @Failure 401 {object} core.APIResponse{error=core.APIError} "Unauthorized"
+// @Router /api/v1/auth/refresh [post]
+func RefreshHandler(c *gin.Context) {}
+
 // ForgotPasswordHandler godoc
 // @Summary Request password reset
 // @Tags auth

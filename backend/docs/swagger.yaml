@@ -3,8 +3,6 @@ definitions:
     properties:
       email:
         type: string
-    required:
-    - email
     type: object
   auth.LoginRequest:
     properties:
@@ -28,32 +26,21 @@ definitions:
       email:
         type: string
       password:
-        minLength: 6
         type: string
       repeat_password:
         type: string
       username:
-        maxLength: 42
-        minLength: 3
         type: string
-    required:
-    - email
-    - password
-    - repeat_password
-    - username
     type: object
   auth.ResetPasswordRequest:
     properties:
       password:
-        minLength: 6
         type: string
       repeat_password:
         type: string
       token:
         type: string
     required:
-    - password
-    - repeat_password
     - token
     type: object
   catalog.CategoryResponse:
@@ -207,6 +194,34 @@ paths:
                   type: object
               type: object
       summary: Logout user
+      tags:
+      - auth
+  /api/v1/auth/refresh:
+    post:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Successfully refreshed tokens
+          schema:
+            allOf:
+            - $ref: '#/definitions/core.APIResponse'
+            - properties:
+                data:
+                  additionalProperties:
+                    type: string
+                  type: object
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            allOf:
+            - $ref: '#/definitions/core.APIResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/core.APIError'
+              type: object
+      summary: Refresh auth tokens
       tags:
       - auth
   /api/v1/auth/register:
