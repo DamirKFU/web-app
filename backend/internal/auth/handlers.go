@@ -67,7 +67,7 @@ func (ctrl *AuthController) Login(c *gin.Context) {
 		core.Fail(c, http.StatusInternalServerError, err.Error(), nil)
 	}
 
-	c.SetCookie(ctrl.server.Cfg.JWT.AccessCookie, accessToken, int(ctrl.server.Cfg.JWT.AccessExpiresIn), "/", "", false, true)
+	c.SetCookie(ctrl.server.Cfg.JWT.AccessCookie, accessToken, int(ctrl.server.Cfg.JWT.RefreshExpiresIn), "/", "", false, true)
 	c.SetCookie(ctrl.server.Cfg.JWT.RefreshCookie, refreshToken, int(ctrl.server.Cfg.JWT.RefreshExpiresIn), "/", "", false, true)
 	core.Success(c, gin.H{
 		"message":                   "logged in",
