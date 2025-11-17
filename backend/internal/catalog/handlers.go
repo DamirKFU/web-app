@@ -21,7 +21,7 @@ func NewCatalogController(server *core.Server) *CatalogController {
 }
 
 func (ctrl *CatalogController) GetColors(c *gin.Context) {
-	colors, err := ctrl.service.GetColors()
+	colors, err := ctrl.service.GetColors(c)
 	if core.HandleServiceError(c, err) {
 		return
 	}
@@ -36,7 +36,7 @@ func (ctrl *CatalogController) GetColors(c *gin.Context) {
 }
 
 func (ctrl *CatalogController) GetCategories(c *gin.Context) {
-	categories, err := ctrl.service.GetCategories()
+	categories, err := ctrl.service.GetCategories(c)
 	if core.HandleServiceError(c, err) {
 		return
 	}
@@ -51,7 +51,7 @@ func (ctrl *CatalogController) GetCategories(c *gin.Context) {
 }
 
 func (ctrl *CatalogController) GetGarments(c *gin.Context) {
-	garments, err := ctrl.service.GetGarments()
+	garments, err := ctrl.service.GetGarments(c)
 	if core.HandleServiceError(c, err) {
 		return
 	}

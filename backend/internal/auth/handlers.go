@@ -26,7 +26,7 @@ func (ctrl *AuthController) Register(c *gin.Context) {
 		return
 	}
 
-	if core.HandleServiceError(c, ctrl.service.Register(body.Username, body.Password, body.Email)) {
+	if core.HandleServiceError(c, ctrl.service.Register(c, body.Username, body.Password, body.Email)) {
 		return
 	}
 	core.Success(c, gin.H{"message": "data is valid"})
@@ -39,7 +39,7 @@ func (ctrl *AuthController) RegisterConfirm(c *gin.Context) {
 		return
 	}
 
-	if core.HandleServiceError(c, ctrl.service.RegisterConfirm(body.Token)) {
+	if core.HandleServiceError(c, ctrl.service.RegisterConfirm(c, body.Token)) {
 		return
 	}
 	core.SuccessWithStatus(c, http.StatusCreated, gin.H{"message": "user registered"})

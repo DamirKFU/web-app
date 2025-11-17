@@ -28,13 +28,13 @@ func AuthenticationMiddleware(server *core.Server) gin.HandlerFunc {
 			return
 		}
 
-		session, err := sessionManager.GetByID(claims.SessionID)
+		session, err := sessionManager.GetByID(c, claims.SessionID)
 		if err != nil || session == nil {
 			c.Set("user", nil)
 			return
 		}
 
-		user, err := userManager.GetByID(claims.UserID)
+		user, err := userManager.GetByID(c, claims.UserID)
 		if err != nil {
 			c.Set("user", nil)
 			return

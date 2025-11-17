@@ -3,6 +3,8 @@ package catalog
 import (
 	"app/internal/core"
 	"net/http"
+
+	"github.com/gin-gonic/gin"
 )
 
 type CatalogService struct {
@@ -21,8 +23,8 @@ func NewCatalogService(server *core.Server) *CatalogService {
 	}
 }
 
-func (s *CatalogService) GetColors() ([]Color, error) {
-	colors, err := s.colorManager.GetAll()
+func (s *CatalogService) GetColors(c *gin.Context) ([]Color, error) {
+	colors, err := s.colorManager.GetAll(c)
 	if err != nil {
 		return nil, &core.ServiceError{
 			Code:    http.StatusInternalServerError,
@@ -32,8 +34,8 @@ func (s *CatalogService) GetColors() ([]Color, error) {
 	return colors, nil
 }
 
-func (s *CatalogService) GetCategories() ([]Category, error) {
-	categories, err := s.categoryManager.GetAll()
+func (s *CatalogService) GetCategories(c *gin.Context) ([]Category, error) {
+	categories, err := s.categoryManager.GetAll(c)
 	if err != nil {
 		return nil, &core.ServiceError{
 			Code:    http.StatusInternalServerError,
@@ -43,8 +45,8 @@ func (s *CatalogService) GetCategories() ([]Category, error) {
 	return categories, nil
 }
 
-func (s *CatalogService) GetGarments() ([]Garment, error) {
-	tshirts, err := s.tshirtManager.GetAll()
+func (s *CatalogService) GetGarments(c *gin.Context) ([]Garment, error) {
+	tshirts, err := s.tshirtManager.GetAll(c)
 	if err != nil {
 		return nil, &core.ServiceError{
 			Code:    http.StatusInternalServerError,

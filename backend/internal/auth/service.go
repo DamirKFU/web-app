@@ -24,7 +24,7 @@ func NewAuthService(server *core.Server) *AuthService {
 	}
 }
 
-func (service *AuthService) RegisterConfirm(token string) error {
+func (service *AuthService) RegisterConfirm(c *gin.Context, token string) error {
 	payload, err := core.VerifyPayloadToken[RegisterPayload](token, service.server.Cfg.SecretKey)
 	if err != nil {
 		return &core.ServiceError{
@@ -42,14 +42,14 @@ func (service *AuthService) RegisterConfirm(token string) error {
 		}
 	}
 
-	if existing, err := service.userManager.GetByUsername(payload.Username); err == nil && existing != nil {
+	if existing, err := service.userManager.GetByUsername(c, payload.Username); err == nil && existing != nil {
 		return &core.ServiceError{
 			Code:    http.StatusBadRequest,
 			Message: "username already exists",
 		}
 	}
 
-	if existing, err := service.userManager.GetByEmail(payload.Email); err == nil && existing != nil {
+	if existing, err := service.userManager.GetByEmail(c, payload.Email); err == nil && existing != nil {
 		return &core.ServiceError{
 			Code:    http.StatusBadRequest,
 			Message: "email already exists",
@@ -64,7 +64,7 @@ func (service *AuthService) RegisterConfirm(token string) error {
 		}
 	}
 
-	if err := service.userManager.Create(&user); err != nil {
+	if err := service.userManager.Create(c, &user); err != nil {
 		return &core.ServiceError{
 			Code:    http.StatusInternalServerError,
 			Message: err.Error(),
@@ -74,8 +74,8 @@ func (service *AuthService) RegisterConfirm(token string) error {
 	return nil
 }
 
-func (service *AuthService) Register(username, password, email string) error {
-	if existing, err := service.userManager.GetByUsername(username); err == nil && existing != nil {
+func (service *AuthService) Register(c *gin.Context, username, password, email string) error {
+	if existing, err := service.userManager.GetByUsername(c, username); err == nil && existing != nil {
 		return &core.ServiceError{
 			Code:    http.StatusBadRequest,
 			Message: "validation failed",
@@ -83,7 +83,7 @@ func (service *AuthService) Register(username, password, email string) error {
 		}
 	}
 
-	if existing, err := service.userManager.GetByEmail(email); err == nil && existing != nil {
+	if existing, err := service.userManager.GetByEmail(c, email); err == nil && existing != nil {
 		return &core.ServiceError{
 			Code:    http.StatusBadRequest,
 			Message: "validation failed",
@@ -126,7 +126,7 @@ func (service *AuthService) Register(username, password, email string) error {
 }
 
 func (service *AuthService) Login(c *gin.Context, username, password string) (string, string, error) {
-	user, err := service.userManager.GetByUsername(username)
+	user, err := service.userManager.GetByUsername(c, username)
 	if err != nil || !user.CheckPassword(password, service.server.Cfg.SecretKey) {
 		return "", "", &core.ServiceError{
 			Code:    http.StatusUnauthorized,
@@ -134,7 +134,7 @@ func (service *AuthService) Login(c *gin.Context, username, password string) (st
 		}
 	}
 
-	session, err := service.sessionManager.Create(user.ID)
+	session, err := service.sessionManager.Create(c, user.ID)
 	if err != nil {
 		return "", "", &core.ServiceError{
 			Code:    http.StatusInternalServerError,
@@ -168,7 +168,7 @@ func (service *AuthService) RefreshTokens(c *gin.Context, oldRefreshToken string
 		}
 	}
 
-	session, err := service.sessionManager.GetByID(claims.SessionID)
+	session, err := service.sessionManager.GetByID(c, claims.SessionID)
 	if err != nil || session == nil {
 		return "", "", &core.ServiceError{
 			Code:    http.StatusUnauthorized,
@@ -200,12 +200,12 @@ func (service *AuthService) Logout(c *gin.Context, token string) {
 
 	claims, err := ParseToken(token, service.server.Cfg.SecretKey)
 	if err == nil {
-		service.sessionManager.Delete(claims.SessionID)
+		service.sessionManager.Delete(c, claims.SessionID)
 	}
 }
 
 func (service *AuthService) ForgotPassword(c *gin.Context, email string) error {
-	user, err := service.userManager.GetByEmail(strings.ToLower(email))
+	user, err := service.userManager.GetByEmail(c, strings.ToLower(email))
 	if err != nil {
 		return nil
 	}
@@ -256,7 +256,7 @@ func (service *AuthService) ResetPassword(c *gin.Context, token string, newPassw
 		}
 	}
 
-	user, err := service.userManager.GetByID(payload.UserID)
+	user, err := service.userManager.GetByID(c, payload.UserID)
 	if err != nil {
 		return &core.ServiceError{
 			Code:    http.StatusInternalServerError,
@@ -271,7 +271,7 @@ func (service *AuthService) ResetPassword(c *gin.Context, token string, newPassw
 		}
 	}
 
-	if err := service.userManager.Save(user); err != nil {
+	if err := service.userManager.Save(c, user); err != nil {
 		return &core.ServiceError{
 			Code:    http.StatusInternalServerError,
 			Message: err.Error(),
