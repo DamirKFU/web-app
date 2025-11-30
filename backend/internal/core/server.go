@@ -57,6 +57,10 @@ func (s *Server) RegisterRoutes(group *gin.RouterGroup, routes []Route) {
 	}
 }
 
+func (s *Server) RegisterGlobalMiddlewares(mdls []gin.HandlerFunc) {
+	s.Eng.Use(mdls...)
+}
+
 func (s *Server) Reverse(nameSpace string, params map[string]string) string {
 	route, ok := s.RoutesMap[nameSpace]
 	if !ok {

@@ -5,7 +5,7 @@ import (
 )
 
 func RegisterApp(g *gin.RouterGroup, s *Server) {
-	prefix := "core"
+	prefix := "core/"
 	group := g.Group(prefix)
 	routes := GetRoutes(s)
 	RegisterValidators(s)

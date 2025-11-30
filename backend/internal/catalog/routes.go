@@ -11,21 +11,21 @@ func GetRoutes(s *core.Server) []core.Route {
 	routes := []core.Route{
 		{
 			Method:                "GET",
-			Path:                  "/colors",
+			Path:                  "colors/",
 			HandlerFuncs:          []gin.HandlerFunc{au.GetColors},
 			DecoratorHandlerFuncs: []gin.HandlerFunc{},
 			NameSpace:             "colors",
 		},
 		{
 			Method:                "GET",
-			Path:                  "/categories",
+			Path:                  "categories/",
 			HandlerFuncs:          []gin.HandlerFunc{au.GetCategories},
 			DecoratorHandlerFuncs: []gin.HandlerFunc{},
 			NameSpace:             "categories",
 		},
 		{
 			Method:                "GET",
-			Path:                  "/garments",
+			Path:                  "garments/",
 			HandlerFuncs:          []gin.HandlerFunc{au.GetGarments},
 			DecoratorHandlerFuncs: []gin.HandlerFunc{},
 			NameSpace:             "garments",

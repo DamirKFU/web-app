@@ -64,10 +64,11 @@ func HandleValidationError(c *gin.Context, err error) bool {
 		return false
 	}
 
-	if _, ok := err.(*validator.ValidationErrors); ok {
+	if _, ok := err.(validator.ValidationErrors); ok {
 		fields := ParseValidationError(err)
 		Fail(c, http.StatusBadRequest, "validation error", fields)
 	} else {
+
 		Fail(c, http.StatusInternalServerError, "convert type error", nil)
 	}
 

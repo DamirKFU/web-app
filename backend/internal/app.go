@@ -29,15 +29,19 @@ func CreateApp(cfg config.Config) *core.Server {
 	catalog.RegisterValidators(s)
 	users.RegisterValidators(s)
 
-	base_mdls := []gin.HandlerFunc{
+	global_mdls := []gin.HandlerFunc{
 		core.CorsMiddleware(s),
 		core.LimitRequestBodySizeMiddleware(s),
 		core.XSSMiddleware(s),
 		auth.AuthenticationMiddleware(s),
-		core.CSRFMiddleware(s),
 		core.RateLimiterMiddleware(s, "general", 20, 60*time.Second),
 	}
 
+	base_mdls := []gin.HandlerFunc{
+		core.CSRFMiddleware(s),
+	}
+
+	s.RegisterGlobalMiddlewares(global_mdls)
 	s.RegisterMiddlewares(base_mdls)
 
 	base_group := s.Eng.Group("api/v1/")

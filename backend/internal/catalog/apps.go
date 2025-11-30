@@ -12,7 +12,7 @@ func RegisterApp(g *gin.RouterGroup, s *core.Server) {
 		&Category{},
 		&Garment{},
 	}
-	prefix := "catalog"
+	prefix := "catalog/"
 	group := g.Group(prefix)
 	routes := GetRoutes(s)
 	RegisterValidators(s)

@@ -9,7 +9,7 @@ func GetRoutes(s *Server) []Route {
 	routes := []Route{
 		{
 			Method:                "GET",
-			Path:                  "/healf",
+			Path:                  "healf/",
 			HandlerFuncs:          []gin.HandlerFunc{cr.Get},
 			DecoratorHandlerFuncs: []gin.HandlerFunc{},
 			NameSpace:             "healf",
