@@ -52,19 +52,20 @@ type CSRF struct {
 }
 
 type Config struct {
-	HTTP                  HTTP          `mapstructure:"http"`
-	DB                    Database      `mapstructure:"database"`
-	JWT                   JWT           `mapstructure:"jwt"`
-	CORS                  CORS          `mapstructure:"cors"`
-	CSRF                  CSRF          `mapstructure:"csrf"`
-	REDIS                 REDIS         `mapstructure:"redis"`
-	SMTP                  SMTP          `mapstructure:"smtp"`
-	SecretKey             string        `mapstructure:"secret_key"`
-	PayloadTokenExpiresIn time.Duration `mapstructure:"payload_token_expires_in"`
-	FrontURL              string        `mapstructure:"front_url"`
-	LimitBodySize         int64         `mapstructure:"limit_body_size"`
-	TestDBName            string        `mapstructure:"test_db_name"`
-	Debug                 bool          `mapstructure:"debug"`
+	HTTP                  HTTP              `mapstructure:"http"`
+	DB                    Database          `mapstructure:"database"`
+	JWT                   JWT               `mapstructure:"jwt"`
+	CORS                  CORS              `mapstructure:"cors"`
+	CSRF                  CSRF              `mapstructure:"csrf"`
+	REDIS                 REDIS             `mapstructure:"redis"`
+	SMTP                  SMTP              `mapstructure:"smtp"`
+	SecretKey             string            `mapstructure:"secret_key"`
+	PayloadTokenExpiresIn time.Duration     `mapstructure:"payload_token_expires_in"`
+	FrontURL              string            `mapstructure:"front_url"`
+	LimitBodySize         int64             `mapstructure:"limit_body_size"`
+	TestDBName            string            `mapstructure:"test_db_name"`
+	Debug                 bool              `mapstructure:"debug"`
+	ValidationMessages    map[string]string `mapstructure:"validation_messages"`
 }
 
 func Load(config_path string) Config {

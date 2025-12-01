@@ -11,6 +11,7 @@ import (
 	"html/template"
 	"io"
 	"net/http"
+	"reflect"
 	"slices"
 
 	"github.com/dchest/uniuri"
@@ -33,15 +34,33 @@ func GenerateCSRFToken(secret string) (string, error) {
 	return hash, nil
 }
 
-func ParseValidationError(err error) map[string]string {
+func ParseValidationError(validation_messages map[string]string, err error, obj any) map[string]string {
 	fieldErrors := make(map[string]string)
-	for _, fe := range err.(validator.ValidationErrors) {
-		if fe.Param() != "" {
-			fieldErrors[fe.Field()] = fmt.Sprintf("%v=%v", fe.ActualTag(), fe.Param())
-		} else {
-			fieldErrors[fe.Field()] = fmt.Sprintf("%v", fe.ActualTag())
-		}
+
+	t := reflect.TypeOf(obj)
+	if t.Kind() == reflect.Ptr {
+		t = t.Elem()
 	}
+
+	for _, fe := range err.(validator.ValidationErrors) {
+		field, _ := t.FieldByName(fe.StructField())
+		jsonTag := field.Tag.Get("json")
+		if jsonTag == "" {
+			jsonTag = fe.Field()
+		}
+
+		msg, ok := validation_messages[fe.ActualTag()]
+		if !ok || msg == "" {
+			msg = fe.ActualTag()
+		}
+
+		if fe.Param() != "" {
+			msg = fmt.Sprintf("%v: %v", msg, fe.Param())
+		}
+
+		fieldErrors[jsonTag] = msg
+	}
+
 	return fieldErrors
 }
 
@@ -59,13 +78,13 @@ func HandleServiceError(c *gin.Context, err error) bool {
 	return true
 }
 
-func HandleValidationError(c *gin.Context, err error) bool {
+func HandleValidationError(validation_messages map[string]string, c *gin.Context, err error, obj any) bool {
 	if err == nil {
 		return false
 	}
 
 	if _, ok := err.(validator.ValidationErrors); ok {
-		fields := ParseValidationError(err)
+		fields := ParseValidationError(validation_messages, err, obj)
 		Fail(c, http.StatusBadRequest, "validation error", fields)
 	} else {
 
@@ -75,7 +94,7 @@ func HandleValidationError(c *gin.Context, err error) bool {
 	return true
 }
 
-func HandleServerError(c *gin.Context, err error) bool {
+func HandleServerError(validation_messages map[string]string, s *Server, c *gin.Context, err error, obj any) bool {
 	if err == nil {
 		return false
 	}
@@ -83,7 +102,7 @@ func HandleServerError(c *gin.Context, err error) bool {
 	switch e := err.(type) {
 
 	case validator.ValidationErrors:
-		fields := ParseValidationError(err)
+		fields := ParseValidationError(validation_messages, err, obj)
 		Fail(c, http.StatusInternalServerError, "validation error", fields)
 
 	case *ServiceError:

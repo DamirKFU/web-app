@@ -22,7 +22,7 @@ func NewAuthController(server *core.Server) *AuthController {
 func (ctrl *AuthController) Register(c *gin.Context) {
 	var body RegisterRequest
 	err := c.ShouldBindJSON(&body)
-	if core.HandleValidationError(c, err) {
+	if core.HandleValidationError(ctrl.server.Cfg.ValidationMessages, c, err, body) {
 		return
 	}
 
@@ -35,7 +35,7 @@ func (ctrl *AuthController) Register(c *gin.Context) {
 func (ctrl *AuthController) RegisterConfirm(c *gin.Context) {
 	var body RegisterConfirmRequest
 	err := c.ShouldBindJSON(&body)
-	if core.HandleValidationError(c, err) {
+	if core.HandleValidationError(ctrl.server.Cfg.ValidationMessages, c, err, body) {
 		return
 	}
 
@@ -48,7 +48,7 @@ func (ctrl *AuthController) RegisterConfirm(c *gin.Context) {
 func (ctrl *AuthController) Login(c *gin.Context) {
 	var body LoginRequest
 	err := c.ShouldBindJSON(&body)
-	if core.HandleValidationError(c, err) {
+	if core.HandleValidationError(ctrl.server.Cfg.ValidationMessages, c, err, body) {
 		return
 	}
 
@@ -130,7 +130,7 @@ func (ctrl *AuthController) Logout(c *gin.Context) {
 func (ctrl *AuthController) ForgotPassword(c *gin.Context) {
 	var body ForgotPasswordRequest
 	err := c.ShouldBindJSON(&body)
-	if core.HandleValidationError(c, err) {
+	if core.HandleValidationError(ctrl.server.Cfg.ValidationMessages, c, err, body) {
 		return
 	}
 
@@ -144,7 +144,7 @@ func (ctrl *AuthController) ForgotPassword(c *gin.Context) {
 func (ctrl *AuthController) ResetPassword(c *gin.Context) {
 	var body ResetPasswordRequest
 	err := c.ShouldBindJSON(&body)
-	if core.HandleValidationError(c, err) {
+	if core.HandleValidationError(ctrl.server.Cfg.ValidationMessages, c, err, body) {
 		return
 	}
 
